@@ -1,5 +1,22 @@
-export default function LiveFeed({ paused }: { paused: boolean }) {
-  const feedOpacity = paused ? 0.55 : 1;
+import type { LiveSessionData } from "@/features/live-session/types";
+
+const CONNECTION_MESSAGES: Record<LiveSessionData["connectionStatus"], string> = {
+  connecting: "Connecting to your companion…",
+  connected: "Waiting for live view from your companion…",
+  disconnected: "Live view is disconnected.",
+  failed: "Live view could not connect.",
+};
+
+const CONNECTION_LABELS: Record<LiveSessionData["connectionStatus"], string> = {
+  connecting: "Connecting",
+  connected: "Good connection",
+  disconnected: "Disconnected",
+  failed: "Connection failed",
+};
+
+export default function LiveFeed({ live }: { live: LiveSessionData }) {
+  const feedOpacity = live.isPaused ? 0.55 : 1;
+  const pulsing = live.connectionStatus === "connecting" || live.connectionStatus === "connected";
 
   return (
     <div
@@ -20,224 +37,44 @@ export default function LiveFeed({ paused }: { paused: boolean }) {
           borderRadius: 10,
           overflow: "hidden",
           boxShadow: "0 10px 40px rgba(0,0,0,0.28)",
-          background: "linear-gradient(155deg,#d8c9b4 0%,#c8b6a0 45%,#9c8f88 100%)",
+          background: "linear-gradient(155deg,#4a4740 0%,#403d37 45%,#33312c 100%)",
+          transition: "opacity .2s",
+          opacity: feedOpacity,
         }}
       >
-        {/* macOS menubar */}
+        {/* Placeholder until the companion streams a real screen (WebRTC later) */}
         <div
           style={{
+            position: "absolute",
+            inset: 0,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            gap: 16,
-            height: 26,
-            padding: "0 12px",
-            background: "rgba(250,249,247,0.72)",
-            backdropFilter: "blur(12px)",
-            fontSize: 11.5,
-            color: "#1c1b19",
+            justifyContent: "center",
+            gap: 12,
+            padding: 24,
+            textAlign: "center",
           }}
         >
-          <span style={{ fontWeight: 600 }}></span>
-          <span style={{ fontWeight: 600 }}>Finder</span>
-          <span style={{ color: "#3a382f" }}>File</span>
-          <span style={{ color: "#3a382f" }}>Edit</span>
-          <span style={{ color: "#3a382f" }}>View</span>
-          <span style={{ color: "#3a382f" }}>Go</span>
           <span
+            className={pulsing ? "k-pulse" : undefined}
             style={{
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              color: "#3a382f",
+              height: 9,
+              width: 9,
+              borderRadius: "50%",
+              background: live.connectionStatus === "failed" ? "#c9847a" : "#c9c4ba",
             }}
-          >
-            <span>􀙇</span>
-            <span>􀊫</span>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>10:42</span>
-          </span>
+          />
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#e6e1d7" }}>
+            {CONNECTION_MESSAGES[live.connectionStatus]}
+          </p>
+          <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.55, color: "#8f8a80", maxWidth: 340 }}>
+            The screen appears here while Kylian works, so you can watch every action and step in
+            at any time.
+          </p>
         </div>
 
-        {/* Finder window */}
-        <div
-          style={{
-            position: "absolute",
-            left: 26,
-            top: 52,
-            width: "min(66%,420px)",
-            borderRadius: 9,
-            overflow: "hidden",
-            boxShadow: "0 14px 40px rgba(0,0,0,0.22)",
-            background: "#fff",
-            transition: "opacity .2s",
-            opacity: feedOpacity,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              height: 36,
-              padding: "0 12px",
-              background: "#efece7",
-              borderBottom: "1px solid #e2ded6",
-            }}
-          >
-            <span style={{ height: 11, width: 11, borderRadius: "50%", background: "#e5695c" }} />
-            <span style={{ height: 11, width: 11, borderRadius: "50%", background: "#e5c05c" }} />
-            <span style={{ height: 11, width: 11, borderRadius: "50%", background: "#83c463" }} />
-            <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, color: "#3a382f" }}>
-              Documents
-            </span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "118px 1fr" }}>
-            <div
-              style={{
-                background: "#f5f3ee",
-                borderRight: "1px solid #eee9e1",
-                padding: "10px 8px",
-                display: "grid",
-                gap: 3,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  color: "#a8a297",
-                  padding: "0 5px 3px",
-                }}
-              >
-                Favorites
-              </span>
-              <span style={{ fontSize: 11, color: "#6a665f", padding: "4px 6px", borderRadius: 5 }}>
-                Desktop
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "#1c1b19",
-                  padding: "4px 6px",
-                  borderRadius: 5,
-                  background: "#e5e0d6",
-                  fontWeight: 500,
-                }}
-              >
-                Documents
-              </span>
-              <span style={{ fontSize: 11, color: "#6a665f", padding: "4px 6px", borderRadius: 5 }}>
-                Downloads
-              </span>
-              <span style={{ fontSize: 11, color: "#6a665f", padding: "4px 6px", borderRadius: 5 }}>
-                Projects
-              </span>
-            </div>
-            <div style={{ padding: 8, display: "grid", gap: 3 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  background: "#e9e4da",
-                  border: "1px solid #ddd6c9",
-                }}
-              >
-                <span style={{ height: 18, width: 14, borderRadius: 2, background: "#c96f5e" }} />
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: "#1c1b19" }}>
-                  Resume_Ivan_2026.pdf
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                }}
-              >
-                <span style={{ height: 18, width: 14, borderRadius: 2, background: "#5e7bc9" }} />
-                <span style={{ fontSize: 11.5, color: "#3a382f" }}>Resume_Ivan_technical.pdf</span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                }}
-              >
-                <span style={{ height: 18, width: 14, borderRadius: 2, background: "#8a8378" }} />
-                <span style={{ fontSize: 11.5, color: "#3a382f" }}>Resume_old_v3.docx</span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                }}
-              >
-                <span style={{ height: 18, width: 14, borderRadius: 2, background: "#8a8378" }} />
-                <span style={{ fontSize: 11.5, color: "#3a382f" }}>CoverLetter_generic.docx</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Preview window */}
-        <div
-          style={{
-            position: "absolute",
-            right: 22,
-            bottom: 78,
-            width: "min(46%,270px)",
-            borderRadius: 9,
-            overflow: "hidden",
-            boxShadow: "0 14px 40px rgba(0,0,0,0.24)",
-            background: "#fff",
-            transition: "opacity .2s",
-            opacity: feedOpacity,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              height: 32,
-              padding: "0 12px",
-              background: "#efece7",
-              borderBottom: "1px solid #e2ded6",
-            }}
-          >
-            <span style={{ height: 10, width: 10, borderRadius: "50%", background: "#e5695c" }} />
-            <span style={{ height: 10, width: 10, borderRadius: "50%", background: "#e5c05c" }} />
-            <span style={{ height: 10, width: 10, borderRadius: "50%", background: "#83c463" }} />
-            <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 500, color: "#3a382f" }}>
-              Preview — Resume_Ivan_2026.pdf
-            </span>
-          </div>
-          <div style={{ padding: "14px 16px" }}>
-            <div style={{ height: 9, width: "52%", borderRadius: 2, background: "#2c2a26", marginBottom: 9 }} />
-            <div style={{ height: 5, width: "36%", borderRadius: 2, background: "#c9c3b8", marginBottom: 12 }} />
-            <div style={{ height: 4, width: "92%", borderRadius: 2, background: "#e6e1d7", marginBottom: 5 }} />
-            <div style={{ height: 4, width: "88%", borderRadius: 2, background: "#e6e1d7", marginBottom: 5 }} />
-            <div style={{ height: 4, width: "70%", borderRadius: 2, background: "#e6e1d7", marginBottom: 12 }} />
-            <div style={{ height: 5, width: "30%", borderRadius: 2, background: "#c9c3b8", marginBottom: 8 }} />
-            <div style={{ height: 4, width: "80%", borderRadius: 2, background: "#e6e1d7", marginBottom: 5 }} />
-            <div style={{ height: 4, width: "64%", borderRadius: 2, background: "#e6e1d7" }} />
-          </div>
-        </div>
-
-        {/* HUD overlay */}
+        {/* HUD overlay — driven by session data */}
         <div
           style={{
             position: "absolute",
@@ -284,28 +121,33 @@ export default function LiveFeed({ paused }: { paused: boolean }) {
               <span style={{ display: "flex", gap: 1.5, alignItems: "flex-end" }}>
                 <span style={{ width: 2.5, height: 5, background: "#c9c4ba", borderRadius: 1 }} />
                 <span style={{ width: 2.5, height: 8, background: "#c9c4ba", borderRadius: 1 }} />
-                <span style={{ width: 2.5, height: 11, background: "#c9c4ba", borderRadius: 1 }} />
+                <span
+                  style={{
+                    width: 2.5,
+                    height: 11,
+                    background: live.connectionStatus === "connected" ? "#c9c4ba" : "#6f6a61",
+                    borderRadius: 1,
+                  }}
+                />
               </span>
-              Good connection
+              {CONNECTION_LABELS[live.connectionStatus]}
             </span>
           </div>
           <div style={{ display: "grid", gap: 7 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <span style={{ width: 64, fontSize: 10.5, color: "#8f8a80", flex: "none" }}>Task</span>
-              <span style={{ fontSize: 11.5, color: "#f2efe9" }}>Find latest technical resume</span>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <span style={{ width: 64, fontSize: 10.5, color: "#8f8a80", flex: "none" }}>
-                Current app
-              </span>
-              <span style={{ fontSize: 11.5, color: "#f2efe9" }}>Finder</span>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <span style={{ width: 64, fontSize: 10.5, color: "#8f8a80", flex: "none" }}>Action</span>
-              <span style={{ fontSize: 11.5, color: "#f2efe9" }}>
-                Comparing 2 most recent versions
-              </span>
-            </div>
+            {(
+              [
+                ["Task", live.feed?.task],
+                ["Current app", live.feed?.currentApp],
+                ["Action", live.feed?.action],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} style={{ display: "flex", gap: 8 }}>
+                <span style={{ width: 64, fontSize: 10.5, color: "#8f8a80", flex: "none" }}>
+                  {label}
+                </span>
+                <span style={{ fontSize: 11.5, color: "#f2efe9" }}>{value ?? "—"}</span>
+              </div>
+            ))}
             <div style={{ display: "flex", gap: 8 }}>
               <span style={{ width: 64, fontSize: 10.5, color: "#8f8a80", flex: "none" }}>
                 Permission
@@ -326,7 +168,7 @@ export default function LiveFeed({ paused }: { paused: boolean }) {
                     padding: "1px 6px",
                   }}
                 >
-                  Read only
+                  {live.feed?.permission ?? "—"}
                 </span>
               </span>
             </div>

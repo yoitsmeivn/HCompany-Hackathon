@@ -1,9 +1,20 @@
 import { Link } from "react-router-dom";
+import { User } from "lucide-react";
 import StatusDot from "@/components/ui/StatusDot";
-import { MOCK_COMPUTERS } from "@/data/mockComputers";
+import { useAppState } from "@/store/context";
+import { selectActiveComputer, selectConnectedComputer } from "@/store/selectors";
 
 export default function DashboardHeader() {
-  const primary = MOCK_COMPUTERS.find((c) => c.status === "online") ?? MOCK_COMPUTERS[0];
+  const state = useAppState();
+  const connected = selectConnectedComputer(state);
+  const active = selectActiveComputer(state);
+  const newSessionTarget = state.computers.length > 0 ? "/new-session" : "/setup";
+
+  const chip = connected
+    ? { dot: "solid" as const, label: `${connected.name} · Connected` }
+    : active
+      ? { dot: "hollow" as const, label: `${active.name} · Not connected` }
+      : { dot: "muted" as const, label: "No computer connected" };
 
   return (
     <header
@@ -23,7 +34,8 @@ export default function DashboardHeader() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <span
+        <Link
+          to={connected ? "/computers" : "/setup"}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -34,15 +46,16 @@ export default function DashboardHeader() {
             padding: "5px 10px",
             fontSize: 12.5,
             fontWeight: 500,
+            color: "inherit",
           }}
         >
-          <StatusDot variant={primary.status === "online" ? "solid" : "hollow"} />
-          {primary.name} · {primary.status === "online" ? "Connected" : "Offline"}
-        </span>
+          <StatusDot variant={chip.dot} />
+          {chip.label}
+        </Link>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Link
-          to="/setup"
+          to={newSessionTarget}
           style={{
             borderRadius: 6,
             background: "#1c1b19",
@@ -64,12 +77,10 @@ export default function DashboardHeader() {
             justifyContent: "center",
             borderRadius: "50%",
             background: "#e7e3dd",
-            fontSize: 12,
-            fontWeight: 600,
             color: "#3a382f",
           }}
         >
-          IV
+          <User size={15} strokeWidth={1.75} />
         </span>
       </div>
     </header>

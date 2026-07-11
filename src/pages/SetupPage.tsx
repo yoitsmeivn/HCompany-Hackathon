@@ -1,22 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePageTitle } from "@/app/usePageTitle";
 import Toggle from "@/components/ui/Toggle";
 import SegmentedControl from "@/components/ui/SegmentedControl";
+import StatusDot from "@/components/ui/StatusDot";
 import AccessModePicker from "@/features/access/components/AccessModePicker";
 import SelectionChips from "@/features/access/components/SelectionChips";
 import type { AccessPolicy } from "@/features/access/types";
 import { DEFAULT_ACCESS_POLICY } from "@/features/access/types";
+import { formatRelative } from "@/lib/time";
+import { newId } from "@/lib/id";
+import { detectCompanion, type CompanionInfo } from "@/services/companionService";
+import { useAppDispatch, useAppState } from "@/store/context";
+import { computerConnected, preferencesChanged } from "@/store/actions";
+import { selectConnectedComputer, selectRecentSessions } from "@/store/selectors";
 
 const FOLDER_OPTIONS = ["Desktop", "Documents", "Downloads", "Projects"];
 const APPLICATION_OPTIONS = ["Finder", "Preview", "Mail", "Notes"];
 const CHANNELS = ["Phone", "WhatsApp", "Slack", "Web chat"];
-
-const RECENT_SESSIONS = [
-  { id: "pitch-deck", title: "Find latest pitch deck", time: "2m ago", status: "Complete" },
-  { id: "demo-session", title: "Retrieve technical resume", time: "Active now", status: "Active" },
-  { id: "signed-lease", title: "Send signed lease", time: "1m ago", status: "Waiting" },
-];
 
 function toggleItem(list: string[], name: string): string[] {
   return list.includes(name) ? list.filter((n) => n !== name) : [...list, name];
@@ -25,9 +26,97 @@ function toggleItem(list: string[], name: string): string[] {
 export default function SetupPage() {
   usePageTitle("Connect your computer");
 
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+  const connectedComputer = selectConnectedComputer(state);
+  const configuredComputer = state.computers[0];
+  const recentSessions = selectRecentSessions(state, 3);
+
   const [access, setAccess] = useState<AccessPolicy>(DEFAULT_ACCESS_POLICY);
-  const [channel, setChannel] = useState("Phone");
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
   const [waiting, setWaiting] = useState(false);
+  const [companion, setCompanion] = useState<CompanionInfo | null>(null);
+
+  // Probe for a local companion once — the future WebSocket boundary.
+  useEffect(() => {
+    let cancelled = false;
+    detectCompanion().then((info) => {
+      if (!cancelled) setCompanion(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const channel = state.preferences.channel;
+  const companionPresent = Boolean(connectedComputer) || companion !== null;
+
+  const connect = () => {
+    if (waiting) {
+      setWaiting(false);
+      return;
+    }
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    dispatch(
+      computerConnected({
+        id: newId("computer"),
+        name: trimmed,
+        status: "configured",
+        lastSeenAt: null,
+        access,
+      }),
+    );
+    setWaiting(true);
+  };
+
+  const headerPill = connectedComputer ? (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 11.5,
+        fontWeight: 500,
+        color: "#3a382f",
+      }}
+    >
+      <StatusDot variant="solid" size={6} />
+      Connected
+    </span>
+  ) : configuredComputer ? (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 11.5,
+        fontWeight: 500,
+        color: "#6a665f",
+      }}
+    >
+      <StatusDot variant="hollow" size={6} />
+      Configured — waiting for companion
+    </span>
+  ) : (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 11.5,
+        fontWeight: 500,
+        color: "#6a665f",
+      }}
+    >
+      <span
+        className="k-pulse"
+        style={{ height: 6, width: 6, borderRadius: "50%", background: "#b3aea3" }}
+      />
+      Not connected
+    </span>
+  );
 
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "44px 28px 72px" }}>
@@ -73,22 +162,7 @@ export default function SetupPage() {
             }}
           >
             <span style={{ fontSize: 13.5, fontWeight: 600 }}>Setup</span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 11.5,
-                fontWeight: 500,
-                color: "#6a665f",
-              }}
-            >
-              <span
-                className="k-pulse"
-                style={{ height: 6, width: 6, borderRadius: "50%", background: "#b3aea3" }}
-              />
-              Not connected
-            </span>
+            {headerPill}
           </div>
 
           <div style={{ padding: 22, display: "grid", gap: 20 }}>
@@ -112,11 +186,13 @@ export default function SetupPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  🇺🇸 +1
+                  +1
                 </span>
                 <input
                   className="k-input"
-                  defaultValue="(310) 555-0148"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 010-0000"
                   style={{
                     flex: 1,
                     border: "1px solid #e7e3dd",
@@ -142,7 +218,9 @@ export default function SetupPage() {
               </label>
               <input
                 className="k-input"
-                defaultValue="Ivan’s MacBook Pro"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Living-room MacBook"
                 style={{
                   width: "100%",
                   border: "1px solid #e7e3dd",
@@ -179,10 +257,10 @@ export default function SetupPage() {
                   <SelectionChips
                     options={FOLDER_OPTIONS}
                     selected={access.selectedFolders}
-                    onToggle={(name) =>
+                    onToggle={(folder) =>
                       setAccess((p) => ({
                         ...p,
-                        selectedFolders: toggleItem(p.selectedFolders, name),
+                        selectedFolders: toggleItem(p.selectedFolders, folder),
                       }))
                     }
                     addLabel="+ Add folder"
@@ -201,10 +279,10 @@ export default function SetupPage() {
                   <SelectionChips
                     options={APPLICATION_OPTIONS}
                     selected={access.selectedApplications}
-                    onToggle={(name) =>
+                    onToggle={(app) =>
                       setAccess((p) => ({
                         ...p,
-                        selectedApplications: toggleItem(p.selectedApplications, name),
+                        selectedApplications: toggleItem(p.selectedApplications, app),
                       }))
                     }
                     addLabel="+ Add application"
@@ -221,7 +299,11 @@ export default function SetupPage() {
               <label style={{ display: "block", fontSize: 12.5, fontWeight: 500, marginBottom: 7 }}>
                 Preferred messaging channel
               </label>
-              <SegmentedControl options={CHANNELS} value={channel} onChange={setChannel} />
+              <SegmentedControl
+                options={CHANNELS}
+                value={channel}
+                onChange={(value) => dispatch(preferencesChanged({ channel: value }))}
+              />
             </div>
 
             {/* Toggles */}
@@ -275,7 +357,8 @@ export default function SetupPage() {
             <div style={{ display: "grid", gap: 12 }}>
               <button
                 className="k-primary"
-                onClick={() => setWaiting((w) => !w)}
+                onClick={connect}
+                disabled={!waiting && !name.trim()}
                 style={{
                   width: "100%",
                   border: "none",
@@ -285,7 +368,8 @@ export default function SetupPage() {
                   padding: 12,
                   fontSize: 14,
                   fontWeight: 500,
-                  cursor: "pointer",
+                  cursor: !waiting && !name.trim() ? "default" : "pointer",
+                  opacity: !waiting && !name.trim() ? 0.45 : 1,
                   transition: "background .15s",
                   fontFamily: "inherit",
                   boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
@@ -312,7 +396,9 @@ export default function SetupPage() {
                   <div>
                     <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500 }}>Waiting for call</p>
                     <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#9a958c" }}>
-                      Call or message Kylian from (310) 555-0148 to begin.
+                      {phone.trim()
+                        ? `Call or message Kylian from ${phone.trim()} to begin.`
+                        : "Call or message Kylian from your verified number to begin."}
                     </p>
                   </div>
                 </div>
@@ -351,7 +437,7 @@ export default function SetupPage() {
               <span style={{ fontSize: 13, fontWeight: 600 }}>Local companion</span>
             </div>
             <p style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.55, color: "#6a665f" }}>
-              This demo connects only to the computer running the local Kylian companion. Nothing
+              Kylian connects only to the computer running the local Kylian companion. Nothing
               leaves your machine without approval.
             </p>
             <div
@@ -364,9 +450,15 @@ export default function SetupPage() {
                 paddingTop: 12,
               }}
             >
-              <span style={{ height: 7, width: 7, borderRadius: "50%", background: "#1c1b19" }} />
-              <span style={{ fontSize: 12, fontWeight: 500 }}>
-                Companion detected on this network
+              <StatusDot variant={companionPresent ? "solid" : "muted"} />
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: companionPresent ? "inherit" : "#6a665f",
+                }}
+              >
+                {companionPresent ? "Companion connected" : "No companion detected yet"}
               </span>
             </div>
           </div>
@@ -392,43 +484,51 @@ export default function SetupPage() {
             >
               Recent sessions
             </p>
-            <div style={{ display: "grid", gap: 2 }}>
-              {RECENT_SESSIONS.map((s) => (
-                <Link
-                  key={s.id}
-                  to={`/session/${s.id}`}
-                  className="k-row"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                    borderRadius: 6,
-                    padding: "9px 8px",
-                    color: "inherit",
-                  }}
-                >
-                  <span style={{ minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 12.5,
-                        fontWeight: 500,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {s.title}
+            {recentSessions.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 12, color: "#9a958c" }}>
+                No sessions yet. Your first session will appear here.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: 2 }}>
+                {recentSessions.map((s) => (
+                  <Link
+                    key={s.id}
+                    to={`/session/${s.id}`}
+                    className="k-row"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      borderRadius: 6,
+                      padding: "9px 8px",
+                      color: "inherit",
+                    }}
+                  >
+                    <span style={{ minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 12.5,
+                          fontWeight: 500,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {s.name}
+                      </span>
+                      <span style={{ fontSize: 11, color: "#9a958c" }}>
+                        {s.state === "active" ? "Active now" : formatRelative(s.lastActiveAt)}
+                      </span>
                     </span>
-                    <span style={{ fontSize: 11, color: "#9a958c" }}>{s.time}</span>
-                  </span>
-                  <span style={{ fontSize: 11, color: "#9a958c", whiteSpace: "nowrap" }}>
-                    {s.status}
-                  </span>
-                </Link>
-              ))}
-            </div>
+                    <span style={{ fontSize: 11, color: "#9a958c", whiteSpace: "nowrap" }}>
+                      {s.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
             <Link
               to="/dashboard"
               style={{

@@ -1,0 +1,53 @@
+- generic [ref=f1e102]:
+  - banner [ref=f1e103]:
+    - generic [ref=f1e104]:
+      - link "←" [ref=f1e105] [cursor=pointer]:
+        - /url: /dashboard
+      - generic [ref=f1e106]:
+        - generic [ref=f1e107]:
+          - generic [ref=f1e108]: Find the latest quarterly report
+          - generic [ref=f1e109]: CONNECTING
+        - generic [ref=f1e111]: Home MacBook · Session SION-1
+    - generic [ref=f1e112]:
+      - button "Pause" [ref=f1e113] [cursor=pointer]
+      - button "Take control" [ref=f1e114] [cursor=pointer]
+      - button "Mute voice" [ref=f1e115] [cursor=pointer]
+      - button "Stopped" [disabled] [ref=f1e116]
+  - generic [ref=f1e117]:
+    - generic [ref=f1e119]:
+      - generic [ref=f1e120]:
+        - paragraph [ref=f1e122]: Connecting to your companion…
+        - paragraph [ref=f1e123]: The screen appears here while Kylian works, so you can watch every action and step in at any time.
+      - generic [ref=f1e124]:
+        - generic [ref=f1e125]:
+          - generic [ref=f1e126]: Live session
+          - generic [ref=f1e127]: Connecting
+        - generic [ref=f1e132]:
+          - generic [ref=f1e133]:
+            - generic [ref=f1e134]: Task
+            - generic [ref=f1e135]: —
+          - generic [ref=f1e136]:
+            - generic [ref=f1e137]: Current app
+            - generic [ref=f1e138]: —
+          - generic [ref=f1e139]:
+            - generic [ref=f1e140]: Action
+            - generic [ref=f1e141]: —
+          - generic [ref=f1e142]:
+            - generic [ref=f1e143]: Permission
+            - generic [ref=f1e144]: —
+    - complementary [ref=f1e146]:
+      - generic [ref=f1e147]:
+        - paragraph [ref=f1e148]: Conversation
+        - paragraph [ref=f1e149]: No messages yet — send Kylian an instruction below.
+        - generic [ref=f1e150]:
+          - textbox "Add an instruction…" [ref=f1e151]
+          - button "Send" [ref=f1e152] [cursor=pointer]
+      - generic [ref=f1e153]:
+        - paragraph [ref=f1e154]: Agent activity
+        - paragraph [ref=f1e155]: Agent activity will appear here as Kylian works.
+      - generic [ref=f1e156]:
+        - paragraph [ref=f1e158]: Candidate files
+        - paragraph [ref=f1e159]: When Kylian finds matching files, they’ll be listed here for you to choose from.
+      - generic [ref=f1e160]:
+        - paragraph [ref=f1e161]: Approval request
+        - paragraph [ref=f1e162]: Nothing is waiting for your approval right now.

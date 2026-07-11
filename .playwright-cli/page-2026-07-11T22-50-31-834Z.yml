@@ -1,0 +1,106 @@
+- generic [ref=e2]:
+  - generic [ref=e299]:
+    - complementary [ref=e300]:
+      - link "K Kylian" [ref=e302] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e303]: K
+        - generic [ref=e304]: Kylian
+      - navigation [ref=e305]:
+        - link "Sessions" [ref=e306] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Computers" [ref=e310] [cursor=pointer]:
+          - /url: /computers
+        - link "Files" [ref=e313] [cursor=pointer]:
+          - /url: /files
+    - main [ref=e316]:
+      - generic [ref=e317]:
+        - link "Home MacBook · Connected" [ref=e319] [cursor=pointer]:
+          - /url: /computers
+        - link "New session" [ref=e322] [cursor=pointer]:
+          - /url: /new-session
+      - generic [ref=e327]:
+        - generic [ref=e328]:
+          - generic [ref=e329]:
+            - heading "Recent sessions" [level=1] [ref=e330]
+            - paragraph [ref=e331]: Tasks Kylian has run on your computer.
+          - generic [ref=e332]:
+            - generic [ref=e333]: 0 active · 1 waiting on you
+            - generic [ref=e334]:
+              - text: All computers
+              - generic [ref=e335]: ▾
+            - generic [ref=e336]:
+              - text: Any status
+              - generic [ref=e337]: ▾
+        - generic [ref=e338]:
+          - generic [ref=e339]:
+            - generic [ref=e340]: Name
+            - generic [ref=e341]: Last active
+            - generic [ref=e342]: Device
+            - generic [ref=e343]: Status
+            - generic [ref=e344]: Access
+          - link "Find the latest quarterly report Marked complete via demo controls Just now Home MacBook Complete Ask every time Open session More options" [ref=e345] [cursor=pointer]:
+            - /url: /session/demo-session-1
+            - generic [ref=e350]:
+              - generic [ref=e351]: Find the latest quarterly report
+              - generic [ref=e352]: Marked complete via demo controls
+            - generic [ref=e353]: Just now
+            - generic [ref=e354]: Home MacBook
+            - generic [ref=e355]: Complete
+            - generic [ref=e358]: Ask every time
+            - generic [ref=e359]:
+              - button "Open session" [ref=e360]: ↗
+              - button "More options" [ref=e361]: ⋯
+          - link "Send the signed contract Waiting for your approval 9m ago Home MacBook Waiting Selected access Open session More options" [ref=e362] [cursor=pointer]:
+            - /url: /session/demo-session-2
+            - generic [ref=e367]:
+              - generic [ref=e368]: Send the signed contract
+              - generic [ref=e369]: Waiting for your approval
+            - generic [ref=e370]: 9m ago
+            - generic [ref=e371]: Home MacBook
+            - generic [ref=e372]: Waiting
+            - generic [ref=e375]: Selected access
+            - generic [ref=e376]:
+              - button "Open session" [ref=e377]: ↗
+              - button "More options" [ref=e378]: ⋯
+          - link "Locate the team offsite photos Delivered via secure link Yesterday Home MacBook Complete Ask every time Open session More options" [ref=e379] [cursor=pointer]:
+            - /url: /session/demo-session-3
+            - generic [ref=e384]:
+              - generic [ref=e385]: Locate the team offsite photos
+              - generic [ref=e386]: Delivered via secure link
+            - generic [ref=e387]: Yesterday
+            - generic [ref=e388]: Home MacBook
+            - generic [ref=e389]: Complete
+            - generic [ref=e392]: Ask every time
+            - generic [ref=e393]:
+              - button "Open session" [ref=e394]: ↗
+              - button "More options" [ref=e395]: ⋯
+        - paragraph [ref=e396]:
+          - text: Showing 3 recent sessions · Sessions expire from history after 30 days ·
+          - button "Reset demo data" [ref=e397] [cursor=pointer]
+  - generic [ref=e51]:
+    - button "Demo controls ▾" [ref=e121] [cursor=pointer]:
+      - text: Demo controls
+      - generic [ref=e53]: ▾
+    - generic [ref=e122]:
+      - generic [ref=e123]:
+        - generic [ref=e124]: Computer
+        - combobox [ref=e125]:
+          - option "Home MacBook (connected)" [selected]
+        - generic [ref=e126]:
+          - button "Companion connected" [ref=e127] [cursor=pointer]
+          - button "Disconnected" [ref=e128] [cursor=pointer]
+      - generic [ref=e129]:
+        - generic [ref=e130]: Session
+        - combobox [ref=e131]:
+          - option "Find the latest quarterly report (complete)" [selected]
+          - option "Send the signed contract (waiting)"
+          - option "Locate the team offsite photos (complete)"
+        - textbox "Text for message / event / file…" [ref=e132]
+        - generic [ref=e133]:
+          - button "Agent message" [ref=e134] [cursor=pointer]
+          - button "Activity event" [ref=e135] [cursor=pointer]
+          - button "Candidate file" [ref=e136] [cursor=pointer]
+          - button "Request approval" [ref=e137] [cursor=pointer]
+          - button "Resolve approval" [ref=e138] [cursor=pointer]
+          - button "Mark complete" [ref=e139] [cursor=pointer]
+          - button "Mark failed" [ref=e140] [cursor=pointer]

@@ -1,0 +1,159 @@
+- generic [ref=e2]:
+  - generic [ref=e141]:
+    - banner [ref=e142]:
+      - generic [ref=e143]:
+        - link "←" [ref=e144] [cursor=pointer]:
+          - /url: /dashboard
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - generic [ref=e147]: Find the latest quarterly report
+            - generic [ref=e148]: LIVE
+          - generic [ref=e150]: Home MacBook · Session SION-1
+      - generic [ref=e151]:
+        - button "Pause" [ref=e152] [cursor=pointer]
+        - button "Take control" [ref=e153] [cursor=pointer]
+        - button "Mute voice" [ref=e154] [cursor=pointer]
+        - button "Stopped" [disabled] [ref=e298]
+    - generic [ref=e156]:
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - paragraph [ref=e161]: Waiting for live view from your companion…
+          - paragraph [ref=e162]: The screen appears here while Kylian works, so you can watch every action and step in at any time.
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - generic [ref=e165]: Live session
+            - generic [ref=e166]: Good connection
+          - generic [ref=e171]:
+            - generic [ref=e172]:
+              - generic [ref=e173]: Task
+              - generic [ref=e174]: Find the latest quarterly report
+            - generic [ref=e175]:
+              - generic [ref=e176]: Current app
+              - generic [ref=e177]: Finder
+            - generic [ref=e178]:
+              - generic [ref=e179]: Action
+              - generic [ref=e180]: Comparing two candidate files
+            - generic [ref=e181]:
+              - generic [ref=e182]: Permission
+              - generic [ref=e183]: Ask every time
+      - complementary [ref=e185]:
+        - generic [ref=e186]:
+          - paragraph [ref=e187]: Conversation
+          - generic [ref=e188]:
+            - generic [ref=e189]:
+              - generic [ref=e190]: You
+              - generic [ref=e191]: Find the latest quarterly report — the final version, not a draft.
+            - generic [ref=e192]:
+              - generic [ref=e193]: Kylian
+              - generic [ref=e194]: I found two likely files. I’m opening both to compare which is the final version.
+            - generic [ref=e195]:
+              - generic [ref=e196]: Kylian
+              - generic [ref=e197]: Quarterly_Report_Q2.pdf looks like the final one. Want me to send it?
+            - generic [ref=e198]:
+              - generic [ref=e199]: Kylian
+              - generic [ref=e200]: Runtime verification
+          - generic [ref=e201]:
+            - textbox "Add an instruction…" [ref=e202]
+            - button "Send" [ref=e203] [cursor=pointer]
+        - generic [ref=e204]:
+          - paragraph [ref=e205]: Agent activity
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - generic [ref=e208]: ✓
+              - generic [ref=e211]:
+                - paragraph [ref=e212]: Received request
+                - paragraph [ref=e213]: 4m ago
+            - generic [ref=e214]:
+              - generic [ref=e215]: ✓
+              - generic [ref=e218]:
+                - paragraph [ref=e219]: Authenticated caller
+                - paragraph [ref=e220]: 4m ago
+            - generic [ref=e221]:
+              - generic [ref=e222]: ✓
+              - generic [ref=e225]:
+                - paragraph [ref=e226]: Searched allowed folders
+                - paragraph [ref=e227]: 3m ago
+            - generic [ref=e228]:
+              - generic [ref=e229]: ✓
+              - generic [ref=e232]:
+                - paragraph [ref=e233]: Opened two candidate files
+                - paragraph [ref=e234]: 2m ago
+            - generic [ref=e235]:
+              - generic [ref=e236]: ✓
+              - generic [ref=e239]:
+                - paragraph [ref=e240]: Comparing versions
+                - paragraph [ref=e241]: 1m ago
+            - generic [ref=e245]:
+              - paragraph [ref=e246]: Waiting for approval
+              - paragraph [ref=e247]: —
+            - generic [ref=e251]:
+              - paragraph [ref=e252]: Computer action
+              - paragraph [ref=e253]: Just now
+        - generic [ref=e254]:
+          - generic [ref=e255]:
+            - paragraph [ref=e256]: Candidate files
+            - generic [ref=e257]: 3 found
+          - generic [ref=e258]:
+            - generic [ref=e259]:
+              - generic [ref=e260]:
+                - generic [ref=e261]: PDF
+                - generic [ref=e262]:
+                  - paragraph [ref=e263]: Quarterly_Report_Q2.pdf
+                  - paragraph [ref=e264]: PDF · Modified today · 412 KB
+              - paragraph [ref=e265]: Marked “final” in the footer — matches the request.
+              - generic [ref=e266]:
+                - button "Preview" [ref=e267] [cursor=pointer]
+                - button "Selected" [ref=e268] [cursor=pointer]
+            - generic [ref=e269]:
+              - generic [ref=e270]:
+                - generic [ref=e271]: PDF
+                - generic [ref=e272]:
+                  - paragraph [ref=e273]: Quarterly_Report_Q2_draft.pdf
+                  - paragraph [ref=e274]: PDF · Modified last week · 398 KB
+              - paragraph [ref=e275]: Earlier draft version.
+              - generic [ref=e276]:
+                - button "Preview" [ref=e277] [cursor=pointer]
+                - button "Select" [ref=e278] [cursor=pointer]
+            - generic [ref=e279]:
+              - generic [ref=e280]:
+                - generic [ref=e281]: FILE
+                - generic [ref=e282]:
+                  - paragraph [ref=e283]: candidate.txt
+                  - paragraph [ref=e284]: Added via demo controls
+              - generic [ref=e285]:
+                - button "Preview" [ref=e286] [cursor=pointer]
+                - button "Select" [ref=e287] [cursor=pointer]
+        - generic [ref=e288]:
+          - paragraph [ref=e289]: Approval request
+          - generic [ref=e290]:
+            - generic [ref=e291]:
+              - generic [ref=e292]: ✓
+              - generic [ref=e293]: Approved
+            - paragraph [ref=e294]: document.pdf will be delivered through a secure temporary link.
+  - generic [ref=e51]:
+    - button "Demo controls ▾" [ref=e121] [cursor=pointer]:
+      - text: Demo controls
+      - generic [ref=e53]: ▾
+    - generic [ref=e122]:
+      - generic [ref=e123]:
+        - generic [ref=e124]: Computer
+        - combobox [ref=e125]:
+          - option "Home MacBook (connected)" [selected]
+        - generic [ref=e126]:
+          - button "Companion connected" [ref=e127] [cursor=pointer]
+          - button "Disconnected" [ref=e128] [cursor=pointer]
+      - generic [ref=e129]:
+        - generic [ref=e130]: Session
+        - combobox [ref=e131]:
+          - option "Find the latest quarterly report (complete)" [selected]
+          - option "Send the signed contract (waiting)"
+          - option "Locate the team offsite photos (complete)"
+        - textbox "Text for message / event / file…" [ref=e132]
+        - generic [ref=e133]:
+          - button "Agent message" [ref=e134] [cursor=pointer]
+          - button "Activity event" [ref=e135] [cursor=pointer]
+          - button "Candidate file" [ref=e136] [cursor=pointer]
+          - button "Request approval" [ref=e137] [cursor=pointer]
+          - button "Resolve approval" [ref=e138] [cursor=pointer]
+          - button "Mark complete" [active] [ref=e139] [cursor=pointer]
+          - button "Mark failed" [ref=e140] [cursor=pointer]

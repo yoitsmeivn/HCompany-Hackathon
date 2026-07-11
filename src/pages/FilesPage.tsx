@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { FileText, FolderOpen, Image, Sheet } from "lucide-react";
+import { Archive, FileText, FolderOpen, Image, Plus, Sheet } from "lucide-react";
 import { usePageTitle } from "@/app/usePageTitle";
 import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
+import DemoDataActions from "@/features/demo/components/DemoDataActions";
 import type { FileItem, FileKind } from "@/features/files/types";
 import { FILE_ACTION_LABELS, FILE_STATUS_LABELS } from "@/features/files/types";
-import type { Computer } from "@/features/devices/types";
-import { listFiles } from "@/services/files";
-import { listComputers } from "@/services/devices";
+import { formatRelative } from "@/lib/time";
+import { filesFromSelection } from "@/services/filesService";
+import { useAppDispatch, useAppState } from "@/store/context";
+import { fileRegistered } from "@/store/actions";
+import { selectComputerNames } from "@/store/selectors";
 
 const GRID_COLUMNS = "2.4fr 1.1fr 1.1fr 0.9fr 0.8fr 1.2fr";
 
@@ -21,7 +25,8 @@ const HEADER_CELL_STYLE = {
 } as const;
 
 function FileIcon({ kind }: { kind: FileKind }) {
-  const Icon = kind === "image" ? Image : kind === "xlsx" ? Sheet : FileText;
+  const Icon =
+    kind === "image" ? Image : kind === "xlsx" ? Sheet : kind === "other" ? Archive : FileText;
   return (
     <span
       style={{
@@ -51,30 +56,52 @@ function statusDot(status: FileItem["status"]): "solid" | "hollow" | "muted" {
 export default function FilesPage() {
   usePageTitle("Files");
 
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [computers, setComputers] = useState<Computer[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+  const { files, loading, errors } = state;
+  const computerNames = selectComputerNames(state);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    listFiles().then((f) => {
-      setFiles(f);
-      setLoaded(true);
-    });
-    listComputers().then(setComputers);
-  }, []);
-
-  const computerNames = Object.fromEntries(computers.map((c) => [c.id, c.name]));
+  const addFiles = (selection: FileList | null) => {
+    if (!selection) return;
+    for (const item of filesFromSelection(selection)) {
+      dispatch(fileRegistered(item));
+    }
+    if (fileInput.current) fileInput.current.value = "";
+  };
 
   return (
     <>
-      <div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.015em" }}>
-          Files
-        </h1>
-        <p style={{ margin: "6px 0 0", fontSize: 13, color: "#6a665f" }}>
-          Files Kylian has touched during your sessions.
-        </p>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.015em" }}>
+            Files
+          </h1>
+          <p style={{ margin: "6px 0 0", fontSize: 13, color: "#6a665f" }}>
+            Files Kylian has touched during your sessions.
+          </p>
+        </div>
+        {files.length > 0 && (
+          <Button variant="ghost" onClick={() => fileInput.current?.click()}>
+            <Plus size={13} strokeWidth={2} /> Add files
+          </Button>
+        )}
       </div>
+      <input
+        ref={fileInput}
+        type="file"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => addFiles(e.target.files)}
+      />
 
       <div
         style={{
@@ -86,11 +113,39 @@ export default function FilesPage() {
           boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
         }}
       >
-        {loaded && files.length === 0 ? (
+        {loading.files ? (
+          <p style={{ margin: 0, padding: "28px 18px", fontSize: 12.5, color: "#9a958c" }}>
+            Loading files…
+          </p>
+        ) : errors.files ? (
+          <p
+            style={{
+              margin: 0,
+              padding: "28px 18px",
+              fontSize: 12.5,
+              color: "var(--k-danger)",
+            }}
+          >
+            Couldn’t load files: {errors.files}
+          </p>
+        ) : files.length === 0 ? (
           <EmptyState
             icon={<FolderOpen size={17} strokeWidth={1.75} />}
             title="No files yet"
-            description="Files Kylian finds, opens, or delivers during a session will appear here."
+            description="Files Kylian finds, opens, or delivers during a session will appear here. You can also add files from this device."
+            action={
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <Button onClick={() => fileInput.current?.click()}>Add files</Button>
+                <DemoDataActions />
+              </div>
+            }
           />
         ) : (
           <>
@@ -120,6 +175,12 @@ export default function FilesPage() {
             </div>
 
             {files.map((file) => {
+              const computerLabel = file.computerId
+                ? (computerNames[file.computerId] ?? "—")
+                : file.source === "browser-upload"
+                  ? "This device"
+                  : "—";
+
               const row = (
                 <>
                   <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -160,10 +221,10 @@ export default function FilesPage() {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {computerNames[file.computerId] ?? file.computerId}
+                    {computerLabel}
                   </span>
                   <span className="k-col-lastaccessed" style={{ fontSize: 12.5, color: "#6a665f" }}>
-                    {file.lastAccessed}
+                    {formatRelative(file.lastAccessedAt)}
                   </span>
                   <span style={{ fontSize: 12.5, color: "#6a665f" }}>
                     {FILE_ACTION_LABELS[file.action]}

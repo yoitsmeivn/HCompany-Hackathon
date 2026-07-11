@@ -1,9 +1,11 @@
+import type { ApprovalRequest } from "@/features/live-session/types";
+
 export default function ApprovalCard({
-  approved,
-  onApprove,
+  approval,
+  onResolve,
 }: {
-  approved: boolean;
-  onApprove: () => void;
+  approval: ApprovalRequest | null;
+  onResolve: (approved: boolean) => void;
 }) {
   return (
     <section style={{ padding: "18px 18px 24px" }}>
@@ -19,7 +21,12 @@ export default function ApprovalCard({
       >
         Approval request
       </p>
-      {!approved ? (
+
+      {!approval ? (
+        <p style={{ margin: 0, fontSize: 12, color: "#9a958c" }}>
+          Nothing is waiting for your approval right now.
+        </p>
+      ) : approval.status === "pending" ? (
         <div
           style={{
             border: "1px solid #d7d2c8",
@@ -37,12 +44,12 @@ export default function ApprovalCard({
             <span style={{ fontSize: 11.5, fontWeight: 600 }}>Waiting for your approval</span>
           </div>
           <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: "#3a382f" }}>
-            Kylian is ready to send <span style={{ fontWeight: 600 }}>Resume_Ivan_2026.pdf</span> to
-            your verified device.
+            {approval.summary}{" "}
+            <span style={{ fontWeight: 600 }}>{approval.fileName}</span>
           </p>
           <div style={{ marginTop: 13, display: "flex", gap: 8 }}>
             <button
-              onClick={onApprove}
+              onClick={() => onResolve(true)}
               className="k-primary"
               style={{
                 flex: 1,
@@ -60,6 +67,7 @@ export default function ApprovalCard({
               Approve &amp; send
             </button>
             <button
+              onClick={() => onResolve(false)}
               className="k-ghost"
               style={{
                 border: "1px solid #e7e3dd",
@@ -77,7 +85,7 @@ export default function ApprovalCard({
             </button>
           </div>
         </div>
-      ) : (
+      ) : approval.status === "approved" ? (
         <div
           style={{
             border: "1px solid #d7d2c8",
@@ -103,56 +111,46 @@ export default function ApprovalCard({
             >
               ✓
             </span>
-            <span style={{ fontSize: 11.5, fontWeight: 600 }}>Sent to your device</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600 }}>Approved</span>
           </div>
           <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: "#3a382f" }}>
-            <span style={{ fontWeight: 600 }}>Resume_Ivan_2026.pdf</span> is ready through a secure
-            temporary link.
+            <span style={{ fontWeight: 600 }}>{approval.fileName}</span> will be delivered through
+            a secure temporary link.
           </p>
-          <div
-            style={{
-              marginTop: 12,
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              border: "1px solid #e7e3dd",
-              borderRadius: 7,
-              background: "#faf9f7",
-              padding: "9px 11px",
-            }}
-          >
-            <span style={{ fontSize: 13 }}>🔗</span>
-            <span
+          {approval.deliveryUrl && (
+            <div
               style={{
-                flex: 1,
-                minWidth: 0,
-                fontSize: 11.5,
-                color: "#6a665f",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              kylian.link/d/9fA2…q7 · expires in 9:58
-            </span>
-            <button
-              className="k-ghost"
-              style={{
+                marginTop: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
                 border: "1px solid #e7e3dd",
-                borderRadius: 6,
-                background: "#fff",
-                padding: "5px 10px",
-                fontSize: 11,
-                fontWeight: 500,
-                color: "#3a382f",
-                cursor: "pointer",
-                transition: "all .12s",
+                borderRadius: 7,
+                background: "#faf9f7",
+                padding: "9px 11px",
               }}
             >
-              Copy
-            </button>
-          </div>
+              <span style={{ fontSize: 13 }}>🔗</span>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: 11.5,
+                  color: "#6a665f",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {approval.deliveryUrl}
+              </span>
+            </div>
+          )}
         </div>
+      ) : (
+        <p style={{ margin: 0, fontSize: 12, color: "#9a958c" }}>
+          You declined this request. Nothing was sent.
+        </p>
       )}
     </section>
   );

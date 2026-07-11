@@ -1,0 +1,78 @@
+- generic [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - link "K Kylian" [ref=f1e6] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e7]: K
+      - generic [ref=f1e8]: Kylian
+    - navigation [ref=f1e9]:
+      - link "Sessions" [ref=f1e10] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Computers" [ref=f1e14] [cursor=pointer]:
+        - /url: /computers
+      - link "Files" [ref=f1e17] [cursor=pointer]:
+        - /url: /files
+  - main [ref=f1e20]:
+    - generic [ref=f1e21]:
+      - link "Home MacBook · Not connected" [ref=f1e23] [cursor=pointer]:
+        - /url: /setup
+      - link "New session" [ref=f1e26] [cursor=pointer]:
+        - /url: /new-session
+    - generic [ref=f1e31]:
+      - generic [ref=f1e32]:
+        - generic [ref=f1e33]:
+          - heading "Recent sessions" [level=1] [ref=f1e34]
+          - paragraph [ref=f1e35]: Tasks Kylian has run on your computer.
+        - generic [ref=f1e36]:
+          - generic [ref=f1e37]: 0 active · 1 waiting on you
+          - generic [ref=f1e38]:
+            - text: All computers
+            - generic [ref=f1e39]: ▾
+          - generic [ref=f1e40]:
+            - text: Any status
+            - generic [ref=f1e41]: ▾
+      - generic [ref=f1e42]:
+        - generic [ref=f1e43]:
+          - generic [ref=f1e44]: Name
+          - generic [ref=f1e45]: Last active
+          - generic [ref=f1e46]: Device
+          - generic [ref=f1e47]: Status
+          - generic [ref=f1e48]: Access
+        - link "Find the latest quarterly report Marked complete via demo controls Just now Home MacBook Complete Ask every time Open session More options" [ref=f1e49] [cursor=pointer]:
+          - /url: /session/demo-session-1
+          - generic [ref=f1e54]:
+            - generic [ref=f1e55]: Find the latest quarterly report
+            - generic [ref=f1e56]: Marked complete via demo controls
+          - generic [ref=f1e57]: Just now
+          - generic [ref=f1e58]: Home MacBook
+          - generic [ref=f1e59]: Complete
+          - generic [ref=f1e62]: Ask every time
+          - generic [ref=f1e63]:
+            - button "Open session" [ref=f1e64]: ↗
+            - button "More options" [ref=f1e65]: ⋯
+        - link "Send the signed contract Waiting for your approval 9m ago Home MacBook Waiting Selected access Open session More options" [ref=f1e66] [cursor=pointer]:
+          - /url: /session/demo-session-2
+          - generic [ref=f1e71]:
+            - generic [ref=f1e72]: Send the signed contract
+            - generic [ref=f1e73]: Waiting for your approval
+          - generic [ref=f1e74]: 9m ago
+          - generic [ref=f1e75]: Home MacBook
+          - generic [ref=f1e76]: Waiting
+          - generic [ref=f1e79]: Selected access
+          - generic [ref=f1e80]:
+            - button "Open session" [ref=f1e81]: ↗
+            - button "More options" [ref=f1e82]: ⋯
+        - link "Locate the team offsite photos Delivered via secure link Yesterday Home MacBook Complete Ask every time Open session More options" [ref=f1e83] [cursor=pointer]:
+          - /url: /session/demo-session-3
+          - generic [ref=f1e88]:
+            - generic [ref=f1e89]: Locate the team offsite photos
+            - generic [ref=f1e90]: Delivered via secure link
+          - generic [ref=f1e91]: Yesterday
+          - generic [ref=f1e92]: Home MacBook
+          - generic [ref=f1e93]: Complete
+          - generic [ref=f1e96]: Ask every time
+          - generic [ref=f1e97]:
+            - button "Open session" [ref=f1e98]: ↗
+            - button "More options" [ref=f1e99]: ⋯
+      - paragraph [ref=f1e100]:
+        - text: Showing 3 recent sessions · Sessions expire from history after 30 days ·
+        - button "Reset demo data" [ref=f1e101] [cursor=pointer]

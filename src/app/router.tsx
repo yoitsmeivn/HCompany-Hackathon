@@ -6,7 +6,8 @@ import SetupPage from "@/pages/SetupPage";
 import DashboardPage from "@/pages/DashboardPage";
 import ComputersPage from "@/pages/ComputersPage";
 import FilesPage from "@/pages/FilesPage";
-import SessionPage from "@/pages/SessionPage";
+import NewSessionPage from "@/pages/NewSessionPage";
+import SessionPage, { SessionRedirect } from "@/pages/SessionPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -24,9 +25,10 @@ export const router = createBrowserRouter([
       { path: "/dashboard", element: <DashboardPage /> },
       { path: "/computers", element: <ComputersPage /> },
       { path: "/files", element: <FilesPage /> },
+      { path: "/new-session", element: <NewSessionPage /> },
     ],
   },
-  { path: "/session", element: <Navigate to="/session/demo-session" replace /> },
+  { path: "/session", element: <SessionRedirect /> },
   { path: "/session/:sessionId", element: <SessionPage /> },
   { path: "*", element: <NotFoundPage /> },
 ]);

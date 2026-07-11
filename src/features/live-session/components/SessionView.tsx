@@ -5,25 +5,20 @@ import ConversationPanel from "./ConversationPanel";
 import ActivityTimeline from "./ActivityTimeline";
 import CandidateFiles from "./CandidateFiles";
 import ApprovalCard from "./ApprovalCard";
-import type { Message } from "@/features/live-session/types";
-
-const SEED_MESSAGES: Message[] = [
-  {
-    who: "You",
-    side: "user",
-    text: "Find the newest technical resume — the detailed one, not the short version.",
-  },
-  {
-    who: "Kylian",
-    side: "agent",
-    text: "I found three likely files. I’m opening the two most recent versions to compare.",
-  },
-  {
-    who: "Kylian",
-    side: "agent",
-    text: "Resume_Ivan_2026.pdf looks like the detailed one — it has the full project history. Want me to send it?",
-  },
-];
+import type { Session } from "@/features/sessions/types";
+import type { LiveSessionData } from "@/features/live-session/types";
+import { newId } from "@/lib/id";
+import { nowIso } from "@/lib/time";
+import { useAppDispatch } from "@/store/context";
+import {
+  approvalResolved,
+  candidateSelected,
+  liveConnectionChanged,
+  sessionMessageAdded,
+  sessionMutedChanged,
+  sessionPausedChanged,
+  sessionUpdated,
+} from "@/store/actions";
 
 const ctrlButtonStyle = {
   display: "inline-flex",
@@ -40,25 +35,120 @@ const ctrlButtonStyle = {
   transition: "all .12s",
 } as const;
 
+function StatusBadge({ live }: { live: LiveSessionData }) {
+  if (live.isPaused) {
+    return (
+      <span
+        style={{
+          borderRadius: 5,
+          border: "1px solid #e7e3dd",
+          background: "#f5f2ed",
+          color: "#6a665f",
+          padding: "2px 7px",
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+        }}
+      >
+        PAUSED
+      </span>
+    );
+  }
+  if (live.connectionStatus === "connected") {
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          borderRadius: 5,
+          background: "#1c1b19",
+          color: "#fff",
+          padding: "2px 7px",
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+        }}
+      >
+        <span
+          className="k-pulse"
+          style={{ height: 5, width: 5, borderRadius: "50%", background: "#fff" }}
+        />
+        LIVE
+      </span>
+    );
+  }
+  const label =
+    live.connectionStatus === "connecting"
+      ? "CONNECTING"
+      : live.connectionStatus === "failed"
+        ? "FAILED"
+        : "OFFLINE";
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        borderRadius: 5,
+        border: "1px solid #e7e3dd",
+        background: "#f5f2ed",
+        color: "#6a665f",
+        padding: "2px 7px",
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+      }}
+    >
+      {live.connectionStatus === "connecting" && (
+        <span
+          className="k-pulse"
+          style={{ height: 5, width: 5, borderRadius: "50%", background: "#9a958c" }}
+        />
+      )}
+      {label}
+    </span>
+  );
+}
+
 export default function SessionView({
-  title = "Retrieve technical resume",
-  subtitle = "Ivan’s MacBook Pro · Session #A24-7F",
+  session,
+  computerName,
+  live,
 }: {
-  title?: string;
-  subtitle?: string;
+  session: Session;
+  computerName: string;
+  live: LiveSessionData;
 }) {
-  const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [approved, setApproved] = useState(false);
-  const [selected, setSelected] = useState(0);
+  const dispatch = useAppDispatch();
   const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState<Message[]>(SEED_MESSAGES);
+
+  const sessionEnded = session.state === "complete" || session.state === "failed";
 
   const send = () => {
     const text = draft.trim();
     if (!text) return;
-    setMessages((prev) => [...prev, { who: "You", side: "user", text }]);
+    dispatch(
+      sessionMessageAdded(session.id, {
+        id: newId("msg"),
+        who: "You",
+        side: "user",
+        text,
+        at: nowIso(),
+      }),
+    );
     setDraft("");
+  };
+
+  const stop = () => {
+    dispatch(
+      sessionUpdated(session.id, {
+        state: "complete",
+        status: "Stopped",
+        detail: "Stopped by you",
+      }),
+    );
+    dispatch(liveConnectionChanged(session.id, "disconnected"));
   };
 
   return (
@@ -109,61 +199,37 @@ export default function SessionView({
                   textOverflow: "ellipsis",
                 }}
               >
-                {title}
+                {session.name}
               </span>
-              {!paused ? (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    borderRadius: 5,
-                    background: "#1c1b19",
-                    color: "#fff",
-                    padding: "2px 7px",
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  <span
-                    className="k-pulse"
-                    style={{ height: 5, width: 5, borderRadius: "50%", background: "#fff" }}
-                  />
-                  LIVE
-                </span>
-              ) : (
-                <span
-                  style={{
-                    borderRadius: 5,
-                    border: "1px solid #e7e3dd",
-                    background: "#f5f2ed",
-                    color: "#6a665f",
-                    padding: "2px 7px",
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  PAUSED
-                </span>
-              )}
+              <StatusBadge live={live} />
             </div>
-            <span style={{ fontSize: 11.5, color: "#9a958c" }}>{subtitle}</span>
+            <span style={{ fontSize: 11.5, color: "#9a958c" }}>
+              {computerName} · Session {session.id.slice(-6).toUpperCase()}
+            </span>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => setPaused((p) => !p)} className="k-ctrl" style={ctrlButtonStyle}>
-            {paused ? "Resume" : "Pause"}
+          <button
+            onClick={() => dispatch(sessionPausedChanged(session.id, !live.isPaused))}
+            className="k-ctrl"
+            style={ctrlButtonStyle}
+          >
+            {live.isPaused ? "Resume" : "Pause"}
           </button>
           <button className="k-ctrl" style={ctrlButtonStyle}>
             Take control
           </button>
-          <button onClick={() => setMuted((m) => !m)} className="k-ctrl" style={ctrlButtonStyle}>
-            {muted ? "Unmute voice" : "Mute voice"}
+          <button
+            onClick={() => dispatch(sessionMutedChanged(session.id, !live.isMuted))}
+            className="k-ctrl"
+            style={ctrlButtonStyle}
+          >
+            {live.isMuted ? "Unmute voice" : "Mute voice"}
           </button>
           <button
             className="k-stop"
+            onClick={stop}
+            disabled={sessionEnded}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -175,12 +241,13 @@ export default function SessionView({
               padding: "8px 14px",
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: sessionEnded ? "default" : "pointer",
+              opacity: sessionEnded ? 0.45 : 1,
               transition: "background .12s",
               boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
             }}
           >
-            Stop
+            {sessionEnded ? "Stopped" : "Stop"}
           </button>
         </div>
       </header>
@@ -189,7 +256,7 @@ export default function SessionView({
         className="k-session"
         style={{ display: "grid", gridTemplateColumns: "1fr 384px", flex: 1, minHeight: 0 }}
       >
-        <LiveFeed paused={paused} />
+        <LiveFeed live={live} />
 
         {/* Right panel */}
         <aside
@@ -202,10 +269,22 @@ export default function SessionView({
             padding: 0,
           }}
         >
-          <ConversationPanel messages={messages} draft={draft} onDraft={setDraft} onSend={send} />
-          <ActivityTimeline />
-          <CandidateFiles selected={selected} onSelect={setSelected} />
-          <ApprovalCard approved={approved} onApprove={() => setApproved(true)} />
+          <ConversationPanel
+            messages={live.messages}
+            draft={draft}
+            onDraft={setDraft}
+            onSend={send}
+          />
+          <ActivityTimeline events={live.activity} />
+          <CandidateFiles
+            candidates={live.candidates}
+            selectedId={live.selectedCandidateId}
+            onSelect={(candidateId) => dispatch(candidateSelected(session.id, candidateId))}
+          />
+          <ApprovalCard
+            approval={live.approval}
+            onResolve={(approved) => dispatch(approvalResolved(session.id, approved))}
+          />
         </aside>
       </div>
     </div>

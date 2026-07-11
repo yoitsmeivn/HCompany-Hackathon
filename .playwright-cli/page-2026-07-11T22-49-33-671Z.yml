@@ -1,0 +1,36 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "K Kylian" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7]: K
+        - generic [ref=e8]: Kylian
+      - navigation [ref=e9]:
+        - link "Sessions" [ref=e10] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Computers" [ref=e14] [cursor=pointer]:
+          - /url: /computers
+        - link "Files" [ref=e17] [cursor=pointer]:
+          - /url: /files
+    - main [ref=e20]:
+      - generic [ref=e21]:
+        - link "No computer connected" [ref=e23] [cursor=pointer]:
+          - /url: /setup
+        - link "New session" [ref=e26] [cursor=pointer]:
+          - /url: /setup
+      - generic [ref=e31]:
+        - generic [ref=e33]:
+          - heading "Recent sessions" [level=1] [ref=e34]
+          - paragraph [ref=e35]: Tasks Kylian has run on your computer.
+        - generic [ref=e37]:
+          - paragraph [ref=e42]: No sessions yet
+          - paragraph [ref=e43]: Connect a computer, then call or message Kylian to start your first session.
+          - generic [ref=e45]:
+            - link "Connect a computer" [ref=e46] [cursor=pointer]:
+              - /url: /setup
+            - generic [ref=e48]:
+              - button "Load demo data" [ref=e49] [cursor=pointer]
+              - button "Import JSON…" [ref=e50] [cursor=pointer]
+  - button "Demo controls ▴" [ref=e52] [cursor=pointer]:
+    - text: Demo controls
+    - generic [ref=e53]: ▴

@@ -5,7 +5,7 @@ export interface Session {
   id: ID;
   name: string;
   detail: string;
-  lastActive: string;
+  lastActiveAt: string;
   computerId: ID;
   status: string;
   state: SessionState;

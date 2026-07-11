@@ -1,0 +1,115 @@
+- generic [ref=e118]:
+  - banner [ref=e119]:
+    - generic [ref=e120]:
+      - link "←" [ref=e121] [cursor=pointer]:
+        - /url: /dashboard
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124]: Find the latest quarterly report
+          - generic [ref=e125]: LIVE
+        - generic [ref=e127]: Home MacBook · Session SION-1
+    - generic [ref=e128]:
+      - button "Pause" [ref=e129] [cursor=pointer]
+      - button "Take control" [ref=e130] [cursor=pointer]
+      - button "Mute voice" [ref=e131] [cursor=pointer]
+      - button "Stop" [ref=e132] [cursor=pointer]
+  - generic [ref=e133]:
+    - generic [ref=e135]:
+      - generic [ref=e136]:
+        - paragraph [ref=e138]: Waiting for live view from your companion…
+        - paragraph [ref=e139]: The screen appears here while Kylian works, so you can watch every action and step in at any time.
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: Live session
+          - generic [ref=e143]: Good connection
+        - generic [ref=e148]:
+          - generic [ref=e149]:
+            - generic [ref=e150]: Task
+            - generic [ref=e151]: Find the latest quarterly report
+          - generic [ref=e152]:
+            - generic [ref=e153]: Current app
+            - generic [ref=e154]: Finder
+          - generic [ref=e155]:
+            - generic [ref=e156]: Action
+            - generic [ref=e157]: Comparing two candidate files
+          - generic [ref=e158]:
+            - generic [ref=e159]: Permission
+            - generic [ref=e160]: Ask every time
+    - complementary [ref=e162]:
+      - generic [ref=e163]:
+        - paragraph [ref=e164]: Conversation
+        - generic [ref=e165]:
+          - generic [ref=e166]:
+            - generic [ref=e167]: You
+            - generic [ref=e168]: Find the latest quarterly report — the final version, not a draft.
+          - generic [ref=e169]:
+            - generic [ref=e170]: Kylian
+            - generic [ref=e171]: I found two likely files. I’m opening both to compare which is the final version.
+          - generic [ref=e172]:
+            - generic [ref=e173]: Kylian
+            - generic [ref=e174]: Quarterly_Report_Q2.pdf looks like the final one. Want me to send it?
+        - generic [ref=e175]:
+          - textbox "Add an instruction…" [ref=e176]
+          - button "Send" [ref=e177] [cursor=pointer]
+      - generic [ref=e178]:
+        - paragraph [ref=e179]: Agent activity
+        - generic [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]: ✓
+            - generic [ref=e185]:
+              - paragraph [ref=e186]: Received request
+              - paragraph [ref=e187]: 4m ago
+          - generic [ref=e188]:
+            - generic [ref=e189]: ✓
+            - generic [ref=e192]:
+              - paragraph [ref=e193]: Authenticated caller
+              - paragraph [ref=e194]: 4m ago
+          - generic [ref=e195]:
+            - generic [ref=e196]: ✓
+            - generic [ref=e199]:
+              - paragraph [ref=e200]: Searched allowed folders
+              - paragraph [ref=e201]: 3m ago
+          - generic [ref=e202]:
+            - generic [ref=e203]: ✓
+            - generic [ref=e206]:
+              - paragraph [ref=e207]: Opened two candidate files
+              - paragraph [ref=e208]: 2m ago
+          - generic [ref=e213]:
+            - paragraph [ref=e214]: Comparing versions
+            - paragraph [ref=e215]: 1m ago
+          - generic [ref=e218]:
+            - paragraph [ref=e219]: Waiting for approval
+            - paragraph [ref=e220]: —
+      - generic [ref=e221]:
+        - generic [ref=e222]:
+          - paragraph [ref=e223]: Candidate files
+          - generic [ref=e224]: 2 found
+        - generic [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]:
+              - generic [ref=e228]: PDF
+              - generic [ref=e229]:
+                - paragraph [ref=e230]: Quarterly_Report_Q2.pdf
+                - paragraph [ref=e231]: PDF · Modified today · 412 KB
+            - paragraph [ref=e232]: Marked “final” in the footer — matches the request.
+            - generic [ref=e233]:
+              - button "Preview" [ref=e234] [cursor=pointer]
+              - button "Selected" [ref=e235] [cursor=pointer]
+          - generic [ref=e236]:
+            - generic [ref=e237]:
+              - generic [ref=e238]: PDF
+              - generic [ref=e239]:
+                - paragraph [ref=e240]: Quarterly_Report_Q2_draft.pdf
+                - paragraph [ref=e241]: PDF · Modified last week · 398 KB
+            - paragraph [ref=e242]: Earlier draft version.
+            - generic [ref=e243]:
+              - button "Preview" [ref=e244] [cursor=pointer]
+              - button "Select" [ref=e245] [cursor=pointer]
+      - generic [ref=e246]:
+        - paragraph [ref=e247]: Approval request
+        - generic [ref=e248]:
+          - generic [ref=e249]: Waiting for your approval
+          - paragraph [ref=e252]: Kylian is ready to send a file to your verified device. Quarterly_Report_Q2.pdf
+          - generic [ref=e253]:
+            - button "Approve & send" [ref=e254] [cursor=pointer]
+            - button "Cancel" [ref=e255] [cursor=pointer]
