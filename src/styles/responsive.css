@@ -1,0 +1,69 @@
+@media (max-width: 940px) {
+  .k-session {
+    grid-template-columns: 1fr !important;
+  }
+  .k-feedwrap {
+    height: 46vh !important;
+  }
+  .k-panel {
+    border-left: none !important;
+    border-top: 1px solid var(--k-border) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .k-hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .k-feat-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .k-steps-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .k-sec-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .k-sidebar {
+    display: none !important;
+  }
+  .k-dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .k-col-device,
+  .k-col-access {
+    display: none !important;
+  }
+  .k-col-location,
+  .k-col-computer {
+    display: none !important;
+  }
+  .k-computers-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 780px) {
+  .k-demo-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .k-steps-grid {
+    grid-template-columns: 1fr !important;
+  }
+  h1 {
+    font-size: 38px !important;
+  }
+  h1.k-demo-title {
+    font-size: 26px !important;
+  }
+  .k-col-lastactive,
+  .k-col-lastaccessed {
+    display: none !important;
+  }
+}

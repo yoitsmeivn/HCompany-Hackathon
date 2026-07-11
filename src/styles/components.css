@@ -1,0 +1,69 @@
+/* Session */
+.k-session input {
+  font-family: inherit;
+}
+
+.k-session input:focus {
+  outline: none;
+  border-color: var(--k-ink) !important;
+  box-shadow: 0 0 0 3px rgba(28, 27, 25, 0.06);
+}
+
+.k-ctrl:hover {
+  background: var(--k-hover) !important;
+  border-color: var(--k-border-strong) !important;
+}
+
+.k-stop:hover {
+  background: var(--k-danger-hover) !important;
+}
+
+.k-primary:hover {
+  background: var(--k-ink-soft) !important;
+}
+
+.k-ghost:hover {
+  border-color: #c2bdb2 !important;
+  color: var(--k-ink) !important;
+}
+
+.k-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.k-panel::-webkit-scrollbar-thumb {
+  background: #e0dcd4;
+  border-radius: 8px;
+}
+
+/* Setup */
+.k-chip:hover {
+  border-color: #c2bdb2 !important;
+}
+
+.k-input:focus {
+  outline: none;
+  border-color: var(--k-ink) !important;
+  box-shadow: 0 0 0 3px rgba(28, 27, 25, 0.06);
+}
+
+.k-row:hover {
+  background: var(--k-row-hover);
+}
+
+/* Dashboard */
+.k-iconbtn:hover {
+  background: var(--k-hover) !important;
+  color: var(--k-ink) !important;
+}
+
+.k-navitem:hover {
+  background: var(--k-hover) !important;
+  color: var(--k-ink) !important;
+}
+
+.k-navitem-active {
+  background: var(--k-hover);
+  color: var(--k-ink);
+  font-weight: 500;
+}
