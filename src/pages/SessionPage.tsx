@@ -19,7 +19,7 @@ export function SessionRedirect() {
   const state = useAppState();
   if (state.loading.sessions) return null;
   const session = selectMostRecentActiveSession(state);
-  return <Navigate to={session ? `/session/${session.id}` : "/dashboard"} replace />;
+  return <Navigate to={session ? `/session/${session.id}` : "/monitor"} replace />;
 }
 
 function SessionNotFound() {
@@ -45,7 +45,7 @@ function SessionNotFound() {
         This session doesn’t exist or has expired from history.
       </p>
       <Link
-        to="/dashboard"
+        to="/sessions"
         className="k-primary"
         style={{
           marginTop: 10,

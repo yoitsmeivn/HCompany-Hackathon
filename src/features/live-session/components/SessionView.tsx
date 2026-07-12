@@ -178,7 +178,7 @@ export default function SessionView({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
           <Link
-            to="/dashboard"
+            to="/sessions"
             className="k-ctrl"
             style={{
               display: "flex",

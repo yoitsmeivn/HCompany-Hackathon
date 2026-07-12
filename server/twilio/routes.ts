@@ -26,6 +26,7 @@ export function incomingVoice(config: ServerConfig): RequestHandler {
     stream.parameter({ name: "source", value: "twilio-voice" });
     stream.parameter({ name: "sessionId", value: String(request.body.CallSid) });
     stream.parameter({ name: "computerId", value: config.voiceComputerId });
+    if (request.body.From) stream.parameter({ name: "from", value: String(request.body.From) });
     response.type("text/xml").send(voice.toString());
   };
 }

@@ -28,3 +28,16 @@ export interface RuntimeEventEnvelope {
   at: string;
   event: RuntimeEvent;
 }
+
+// Monitor events are broadcast globally (not keyed by session) so an idle
+// "monitoring" client can discover a call the moment it lands, without knowing
+// the Twilio-minted CallSid in advance.
+export type MonitorEvent =
+  | { kind: "call-started"; sessionId: string; computerId: string; from?: string }
+  | { kind: "call-ended"; sessionId: string };
+
+export interface MonitorEventEnvelope {
+  id: string;
+  at: string;
+  event: MonitorEvent;
+}

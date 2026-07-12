@@ -38,13 +38,14 @@ export class TwilioMediaStreamConnection {
       if (this.state.lifecycle !== "awaiting-start") return this.fail(1008, "Unexpected start event");
       const sessionId = message.start.customParameters.sessionId || message.start.callSid;
       const computerId = message.start.customParameters.computerId || this.defaultComputerId;
+      const from = message.start.customParameters.from || undefined;
       if (!computerId) return this.fail(1008, "Missing computer ID");
       this.state.callSid = message.start.callSid;
       this.state.streamSid = message.streamSid;
       this.state.sessionId = sessionId;
       this.state.lifecycle = "streaming";
       this.call = this.voice.open(
-        { callSid: message.start.callSid, streamSid: message.streamSid, sessionId, computerId },
+        { callSid: message.start.callSid, streamSid: message.streamSid, sessionId, computerId, from },
         { audio: (payload) => this.sendAudio(payload), mark: () => this.sendMark(), clear: () => this.clearAudio() },
         () => this.fail(1011, "Voice runtime failed"),
       );

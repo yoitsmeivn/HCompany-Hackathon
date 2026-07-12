@@ -11,8 +11,7 @@ export function isValidTestCallPhone(value: string): boolean {
 }
 
 export async function startTwilioTestCall(input: { to: string }): Promise<TestCallResult> {
-  const base = (import.meta.env.VITE_KYLIAN_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-  const response = await fetch(`${base}/api/twilio/calls`, {
+  const response = await fetch(`/api/twilio/calls`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ to: normalizePhoneForCall(input.to) }),

@@ -1,5 +1,6 @@
 import type { RuntimeEventHub } from "../runtime/eventHub.js";
 import type { SessionOrchestrationService } from "../orchestrator/sessionOrchestrationService.js";
+import { phoneMatches, type ComputerPolicy } from "../runtime/policyStore.js";
 import type { SpeechRecognizer, SpeechSynthesizer, TranscriptionSession } from "./types.js";
 
 export interface VoiceCallContext {
@@ -7,6 +8,7 @@ export interface VoiceCallContext {
   streamSid: string;
   sessionId: string;
   computerId: string;
+  from?: string;
 }
 
 export interface VoiceOutput {
@@ -27,11 +29,15 @@ export class VoiceRuntime {
     private readonly sessions: SessionOrchestrationService,
     private readonly events: RuntimeEventHub,
     private readonly computerExists: (computerId: string) => boolean = () => true,
+    private readonly policyFor: (computerId: string) => ComputerPolicy | undefined = () => undefined,
   ) {}
 
   open(context: VoiceCallContext, output: VoiceOutput, onError: (error: Error) => void): VoiceCall {
     let closed = false;
     let activeTtsAbortController: AbortController | null = null;
+    const policy = this.policyFor(context.computerId);
+    const authorized = !policy?.authorizedPhone || (context.from ? phoneMatches(policy.authorizedPhone, context.from) : false);
+    this.events.emitMonitor({ kind: "call-started", sessionId: context.sessionId, computerId: context.computerId, from: context.from });
     let outputQueue = Promise.resolve();
     const unsubscribe = this.events.subscribe(context.sessionId, ({ event }) => {
       if (closed || event.kind !== "agent-message") return;
@@ -55,12 +61,19 @@ export class VoiceRuntime {
       streamSid: context.streamSid,
       onTranscript: ({ text }) => {
         if (closed) return;
+        this.events.emit({ kind: "user-message", sessionId: context.sessionId, text, who: "Caller" });
+        if (!authorized) return;
         if (!this.computerExists(context.computerId)) {
           onError(new Error(`Kylian computer ${context.computerId} is not registered`));
           return;
         }
-        this.events.emit({ kind: "user-message", sessionId: context.sessionId, text, who: "Caller" });
-        this.sessions.enqueue({ sessionId: context.sessionId, computerId: context.computerId, text, allowedFolders: [], allowedApplications: [] });
+        this.sessions.enqueue({
+          sessionId: context.sessionId,
+          computerId: context.computerId,
+          text,
+          allowedFolders: policy?.allowedFolders ?? [],
+          allowedApplications: policy?.allowedApplications ?? [],
+        });
       },
       onSpeechActivity: ({ type }) => {
         if (type !== "speech-start" || !activeTtsAbortController) return;
@@ -69,6 +82,11 @@ export class VoiceRuntime {
       },
       onError,
     });
+    if (!authorized) {
+      this.events.emit({ kind: "agent-message", sessionId: context.sessionId, text: "Sorry, this number is not authorized to use Kylian on this computer." });
+      this.events.emit({ kind: "session-state", sessionId: context.sessionId, state: "failed", status: "Unauthorized", detail: "Caller number is not authorized" });
+    }
+    const emitEnded = () => this.events.emitMonitor({ kind: "call-ended", sessionId: context.sessionId });
     return {
       inboundAudio(audio) { if (!closed) transcription.appendMulaw(audio); },
       close() {
@@ -78,6 +96,7 @@ export class VoiceRuntime {
         activeTtsAbortController = null;
         transcription.close();
         unsubscribe();
+        emitEnded();
       },
     };
   }

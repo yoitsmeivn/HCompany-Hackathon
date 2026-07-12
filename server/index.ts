@@ -7,6 +7,7 @@ import { OpenAIOrchestrator } from "./orchestrator/openaiOrchestrator.js";
 import { MockOrchestrator } from "./orchestrator/mockOrchestrator.js";
 import { SessionOrchestrationService } from "./orchestrator/sessionOrchestrationService.js";
 import { RuntimeEventHub } from "./runtime/eventHub.js";
+import { PolicyStore } from "./runtime/policyStore.js";
 import { OpenAIRealtimeTranscriber, OpenAISpeechSynthesizer } from "./voice/openaiVoice.js";
 import { GradiumStreamingTranscriber, GradiumStreamingTts } from "./voice/gradiumVoice.js";
 import { VoiceRuntime } from "./voice/voiceRuntime.js";
@@ -22,7 +23,8 @@ const orchestrator = config.openaiApiKey
   ? new OpenAIOrchestrator(new OpenAI({ apiKey: config.openaiApiKey }), config.openaiModel, computer, events)
   : new MockOrchestrator(computer, events);
 const sessions = new SessionOrchestrationService(orchestrator, events);
-const server = createServer(createApp(config, events, sessions));
+const policies = new PolicyStore();
+const server = createServer(createApp(config, events, sessions, policies));
 const speech = config.voiceProvider === "gradium" && config.gradiumApiKey && config.gradiumTtsVoice
   ? {
       recognizer: new GradiumStreamingTranscriber({
@@ -46,6 +48,7 @@ const voice = speech && config.twilioMediaStreamUrl && config.voiceComputerId
       sessions,
       events,
       (computerId) => computers.has(computerId),
+      (computerId) => policies.get(computerId),
     )
   : undefined;
 const mediaStreams = createTwilioMediaStreamServer(config, voice);

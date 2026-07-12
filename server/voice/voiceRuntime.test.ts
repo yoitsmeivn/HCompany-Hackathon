@@ -51,6 +51,59 @@ test("speech activity aborts active TTS and clears Twilio buffered audio", async
   assert.deepEqual(output.operations, ["audio:first", "clear"]);
 });
 
+test("emits call-started and call-ended monitor events around a call", () => {
+  const events = new RuntimeEventHub();
+  const kinds: string[] = [];
+  events.subscribeMonitor(({ event }) => kinds.push(event.kind));
+  const runtime = new VoiceRuntime(new FakeRecognizer(), new ImmediateSynthesizer(), new FakeSessions() as unknown as SessionOrchestrationService, events);
+  const call = runtime.open({ callSid: "CA1", streamSid: "MZ1", sessionId: "session-1", computerId: "demo-computer", from: "+16505550000" }, new FakeOutput(), assert.fail);
+  call.close();
+  assert.deepEqual(kinds, ["call-started", "call-ended"]);
+});
+
+test("applies the owner's folder and application access from policy", () => {
+  const recognizer = new FakeRecognizer();
+  const sessions = new FakeSessions();
+  const runtime = new VoiceRuntime(
+    recognizer, new ImmediateSynthesizer(), sessions as unknown as SessionOrchestrationService, new RuntimeEventHub(),
+    () => true,
+    () => ({ ownerName: "Ada", authorizedPhone: "", allowedFolders: ["Documents"], allowedApplications: ["Finder"] }),
+  );
+  runtime.open({ callSid: "CA1", streamSid: "MZ1", sessionId: "session-1", computerId: "demo-computer", from: "+16505550000" }, new FakeOutput(), assert.fail);
+  recognizer.transcript({ turnId: "turn-1", text: "Find my report" });
+  assert.deepEqual(sessions.inputs, [{ sessionId: "session-1", computerId: "demo-computer", text: "Find my report", allowedFolders: ["Documents"], allowedApplications: ["Finder"] }]);
+});
+
+test("rejects a call from an unauthorized number without orchestrating", () => {
+  const events = new RuntimeEventHub();
+  const messages: string[] = [];
+  events.subscribe("session-1", ({ event }) => { if (event.kind === "agent-message") messages.push(event.text); });
+  const recognizer = new FakeRecognizer();
+  const sessions = new FakeSessions();
+  const runtime = new VoiceRuntime(
+    recognizer, new ImmediateSynthesizer(), sessions as unknown as SessionOrchestrationService, events,
+    () => true,
+    () => ({ ownerName: "Ada", authorizedPhone: "+16505550000", allowedFolders: [], allowedApplications: [] }),
+  );
+  runtime.open({ callSid: "CA1", streamSid: "MZ1", sessionId: "session-1", computerId: "demo-computer", from: "+19998887777" }, new FakeOutput(), assert.fail);
+  recognizer.transcript({ turnId: "turn-1", text: "Do something" });
+  assert.equal(sessions.inputs.length, 0);
+  assert.match(messages[0] ?? "", /not authorized/i);
+});
+
+test("authorizes a matching caller regardless of phone formatting", () => {
+  const recognizer = new FakeRecognizer();
+  const sessions = new FakeSessions();
+  const runtime = new VoiceRuntime(
+    recognizer, new ImmediateSynthesizer(), sessions as unknown as SessionOrchestrationService, new RuntimeEventHub(),
+    () => true,
+    () => ({ ownerName: "Ada", authorizedPhone: "+1 (650) 555-0000", allowedFolders: [], allowedApplications: [] }),
+  );
+  runtime.open({ callSid: "CA1", streamSid: "MZ1", sessionId: "session-1", computerId: "demo-computer", from: "6505550000" }, new FakeOutput(), assert.fail);
+  recognizer.transcript({ turnId: "turn-1", text: "Find my report" });
+  assert.equal(sessions.inputs.length, 1);
+});
+
 class FakeRecognizer implements SpeechRecognizer {
   private onTranscript: ((transcript: FinalTranscript) => void | Promise<void>) | null = null;
   private onActivity: ((event: SpeechActivityEvent) => void) | undefined;

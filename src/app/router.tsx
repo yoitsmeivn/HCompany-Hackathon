@@ -1,31 +1,28 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import MarketingLayout from "@/layouts/MarketingLayout";
-import DashboardLayout from "@/layouts/DashboardLayout";
-import LandingPage from "@/pages/LandingPage";
-import SetupPage from "@/pages/SetupPage";
-import DashboardPage from "@/pages/DashboardPage";
-import ComputersPage from "@/pages/ComputersPage";
-import FilesPage from "@/pages/FilesPage";
-import NewSessionPage from "@/pages/NewSessionPage";
+import AppLayout from "@/layouts/AppLayout";
+import OnboardingPage from "@/pages/OnboardingPage";
+import MonitoringPage from "@/pages/MonitoringPage";
+import SessionsPage from "@/pages/SessionsPage";
 import SessionPage, { SessionRedirect } from "@/pages/SessionPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import { useAppState } from "@/store/context";
+
+// Send first-time users to onboarding; returning (configured) users go straight
+// to the idle monitoring screen.
+function RootGate() {
+  const state = useAppState();
+  if (state.loading.sessions) return null;
+  return <Navigate to={state.preferences.configured ? "/monitor" : "/onboarding"} replace />;
+}
 
 export const router = createBrowserRouter([
+  { path: "/", element: <RootGate /> },
+  { path: "/onboarding", element: <OnboardingPage /> },
   {
-    element: <MarketingLayout />,
+    element: <AppLayout />,
     children: [
-      { path: "/", element: <LandingPage /> },
-      { path: "/setup", element: <SetupPage /> },
-      { path: "/demo", element: <Navigate to="/setup" replace /> },
-    ],
-  },
-  {
-    element: <DashboardLayout />,
-    children: [
-      { path: "/dashboard", element: <DashboardPage /> },
-      { path: "/computers", element: <ComputersPage /> },
-      { path: "/files", element: <FilesPage /> },
-      { path: "/new-session", element: <NewSessionPage /> },
+      { path: "/monitor", element: <MonitoringPage /> },
+      { path: "/sessions", element: <SessionsPage /> },
     ],
   },
   { path: "/session", element: <SessionRedirect /> },
