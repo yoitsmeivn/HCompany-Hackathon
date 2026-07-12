@@ -1,0 +1,32 @@
+# OpenShell network policy for the Kylian HoloDesktop computer-use sandbox.
+#
+# Direction of traffic differs from the WhatsApp sandbox: here the Kylian backend
+# is the CLIENT (it POSTs /tasks into the sandbox), so we allow INGRESS from the
+# Kylian host, and EGRESS only to the H Models API for inference. Everything else
+# stays blocked by OpenShell default-deny.
+#
+# NOTE: exact policy schema is version-specific. Validate with
+# `openclaw policy schema` before relying on field names.
+name: kylian-desktop-isolation
+description: Ingress from the Kylian backend only; egress to the H Models API only.
+
+ingress:
+  allow:
+    # The Kylian backend that submits and polls desktop tasks. Bearer auth + TLS
+    # are enforced by the service on top of this host restriction.
+    - host: YOUR_KYLIAN_HOST        # e.g. kylian.example.com — do NOT use a wildcard
+      ports: [443]
+      protocol: https
+
+egress:
+  allow:
+    # Holo inference (H Company OpenAI-compatible Models API).
+    - host: api.hcompany.ai
+      ports: [443]
+      protocol: https
+    # Add per-task destinations here ONLY if a task must browse a specific site.
+    # Prefer a narrow allowlist over a wildcard; keep default-deny below.
+
+# Default-deny everything not explicitly allowed above. The sandboxed browser has
+# no arbitrary internet access unless a destination is added to egress.allow.
+default: deny

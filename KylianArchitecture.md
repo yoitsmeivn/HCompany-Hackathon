@@ -445,6 +445,15 @@ It is NVIDIA’s sandboxed runtime for always-on agents. It provides:
 
 NemoClaw supports OpenClaw messaging channels including WhatsApp, Slack, Telegram, Discord, WeChat, and Teams. WhatsApp is currently documented as experimental and pairs through a QR code.
 
+## **NemoClaw as the computer-use sandbox**
+
+NemoClaw is used in two distinct roles:
+
+1. **Messaging sandbox** — the OpenClaw relay agent that forwards WhatsApp messages to Kylian (this section, config in `nemoclaw/`).
+2. **Computer-use sandbox** — the same isolation primitives (virtual desktop, network policy, credential isolation) host the **H Company computer-use agent (Holo)** on an isolated virtual desktop, so `holo3-1-35b-a3b` operates a sandboxed machine instead of the user's real one.
+
+For role 2, the existing HoloDesktop service (`poc/holo-desktop/holo_service.py`) runs as a supervised process inside the sandbox, and Kylian dispatches tasks to it over the **same `/tasks` HTTP contract** the local `holo-desktop` executor uses — only the endpoint moves from `127.0.0.1` to the sandbox's published HTTPS endpoint. On the backend this is `KYLIAN_EXECUTOR_MODE=nemoclaw-desktop` (`server/computer/haiDesktopAdapter.ts` → `NemoclawDesktopServiceAdapter`); provisioning lives in `nemoclaw/desktop/`. Ingress is restricted to the Kylian host and egress to the H Models API (OpenShell default-deny), with bearer auth over TLS.
+
 ## **Does WhatsApp need another model?**
 
 Technically, the OpenClaw agent inside NemoClaw needs a model to interpret the incoming WhatsApp message and call a tool.
@@ -644,6 +653,7 @@ The backend, not the model, must enforce this.
 | Main orchestration | OpenAI Responses API | `gpt-5.6-terra` |
 | Cheaper orchestration fallback | OpenAI Responses API | `gpt-5.6-luna` |
 | Desktop computer use | H Company Holo | `holo3-1-35b-a3b` |
+| Sandboxed desktop computer use (NemoClaw) | H Company Holo in a NemoClaw sandbox | `holo3-1-35b-a3b` |
 | Higher-quality desktop testing | H Company Holo | `holo3-122b-a10b` |
 | WhatsApp ingress inside NemoClaw | H Company through OpenClaw | `holo3-1-35b-a3b` |
 | Speech-to-text | Gradium | Gradium streaming STT |

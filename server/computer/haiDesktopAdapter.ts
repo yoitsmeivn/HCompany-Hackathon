@@ -14,7 +14,7 @@ import type { ComputerTaskAdapter, ComputerTaskRequest, ComputerTaskResult } fro
 // adapter sees is safe to forward into runtime events. The bearer token never
 // appears in results, event labels, or errors.
 
-export type LocalDesktopProvider = "hai-desktop" | "holo-desktop";
+export type LocalDesktopProvider = "hai-desktop" | "holo-desktop" | "nemoclaw-desktop";
 
 export interface HaiDesktopAdapterOptions {
   baseUrl: string;
@@ -37,6 +37,12 @@ interface ServiceTaskRecord {
   error: string | null;
 }
 
+const TASK_PREFIX: Record<LocalDesktopProvider, string> = {
+  "hai-desktop": "hai",
+  "holo-desktop": "holo",
+  "nemoclaw-desktop": "nemo",
+};
+
 const SUMMARY_MAX = 600;
 const POLL_INTERVAL_MS = 1_500;
 const POLL_GRACE_MS = 30_000;
@@ -51,7 +57,7 @@ export class LocalDesktopServiceAdapter implements ComputerTaskAdapter {
   ) {}
 
   async run(request: ComputerTaskRequest): Promise<ComputerTaskResult> {
-    const taskId = `${this.provider === "holo-desktop" ? "holo" : "hai"}-${randomUUID()}`;
+    const taskId = `${TASK_PREFIX[this.provider]}-${randomUUID()}`;
     const submitted = await this.submit(taskId, request);
     if (!submitted.ok) return { taskId, status: "failed", summary: submitted.error };
     this.emit(request.sessionId, "Desktop task queued", "pending");
@@ -187,6 +193,15 @@ export class HaiDesktopComputerTaskAdapter extends LocalDesktopServiceAdapter {
 export class HoloDesktopServiceAdapter extends LocalDesktopServiceAdapter {
   constructor(options: HaiDesktopAdapterOptions, events?: RuntimeEventHub, fetchImpl: FetchLike = fetch) {
     super("holo-desktop", options, events, fetchImpl);
+  }
+}
+
+// Same HoloDesktop service and HTTP contract as HoloDesktopServiceAdapter, but
+// the service runs inside a remote NVIDIA NemoClaw sandbox (isolated virtual
+// desktop) reached over authenticated HTTPS instead of on the local machine.
+export class NemoclawDesktopServiceAdapter extends LocalDesktopServiceAdapter {
+  constructor(options: HaiDesktopAdapterOptions, events?: RuntimeEventHub, fetchImpl: FetchLike = fetch) {
+    super("nemoclaw-desktop", options, events, fetchImpl);
   }
 }
 

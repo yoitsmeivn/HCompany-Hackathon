@@ -1,5 +1,5 @@
 export type VoiceProvider = "gradium" | "openai";
-export type ExecutorMode = "mock" | "h-company" | "hai-desktop" | "holo-desktop" | "local-companion";
+export type ExecutorMode = "mock" | "h-company" | "hai-desktop" | "holo-desktop" | "nemoclaw-desktop" | "local-companion";
 
 export interface ServerConfig {
   port: number;
@@ -26,6 +26,12 @@ export interface ServerConfig {
   // and shared bearer token as the hai service; loopback only).
   holoServiceUrl: string;
   holoTaskTimeoutSeconds: number;
+  // NemoClaw-hosted HoloDesktop service used by the nemoclaw-desktop executor.
+  // Same HTTP contract and shared bearer token, but the service runs inside an
+  // NVIDIA NemoClaw sandbox reached over authenticated HTTPS — so this URL is
+  // remote (not loopback) and must be TLS unless it is a loopback dev endpoint.
+  nemoclawDesktopUrl: string;
+  nemoclawDesktopTaskTimeoutSeconds: number;
   executorMode: ExecutorMode;
   voiceProvider: VoiceProvider;
   twilioAccountSid?: string;
@@ -76,7 +82,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     desktopTaskTimeoutSeconds: integer(env.KYLIAN_DESKTOP_TASK_TIMEOUT_S, 120, "KYLIAN_DESKTOP_TASK_TIMEOUT_S", 10, 900),
     holoServiceUrl: env.KYLIAN_HOLO_SERVICE_URL ?? "http://127.0.0.1:8792",
     holoTaskTimeoutSeconds: integer(env.KYLIAN_HOLO_TASK_TIMEOUT_S, 240, "KYLIAN_HOLO_TASK_TIMEOUT_S", 10, 900),
-    executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "hai-desktop", "holo-desktop", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),
+    nemoclawDesktopUrl: env.KYLIAN_NEMOCLAW_DESKTOP_URL ?? "http://127.0.0.1:8792",
+    nemoclawDesktopTaskTimeoutSeconds: integer(env.KYLIAN_NEMOCLAW_DESKTOP_TASK_TIMEOUT_S, 240, "KYLIAN_NEMOCLAW_DESKTOP_TASK_TIMEOUT_S", 10, 900),
+    executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "hai-desktop", "holo-desktop", "nemoclaw-desktop", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),
     voiceProvider: enumValue(env.KYLIAN_VOICE_PROVIDER, ["gradium", "openai"] as const, gradiumConfigured ? "gradium" : "openai", "KYLIAN_VOICE_PROVIDER"),
     twilioAccountSid: env.TWILIO_ACCOUNT_SID,
     twilioAuthToken: env.TWILIO_AUTH_TOKEN,
@@ -116,14 +124,24 @@ function validateConfig(config: ServerConfig, env: NodeJS.ProcessEnv): void {
   if (env.NODE_ENV === "production" && !config.nemoclawIngressToken) {
     throw new Error("NEMOCLAW_INGRESS_TOKEN is required in production (NODE_ENV=production)");
   }
+  const loopback = ["127.0.0.1", "localhost", "::1", "[::1]"];
   if (config.executorMode === "hai-desktop" || config.executorMode === "holo-desktop") {
     if (!config.desktopServiceToken) throw new Error(`KYLIAN_DESKTOP_SERVICE_TOKEN is required when KYLIAN_EXECUTOR_MODE=${config.executorMode}`);
-    const loopback = ["127.0.0.1", "localhost", "::1", "[::1]"];
     if (!loopback.includes(new URL(config.desktopServiceUrl).hostname)) {
       throw new Error("KYLIAN_DESKTOP_SERVICE_URL must stay on loopback (the desktop service is never exposed publicly)");
     }
     if (!loopback.includes(new URL(config.holoServiceUrl).hostname)) {
       throw new Error("KYLIAN_HOLO_SERVICE_URL must stay on loopback (the desktop service is never exposed publicly)");
+    }
+  }
+  if (config.executorMode === "nemoclaw-desktop") {
+    // The Holo service runs inside a remote NemoClaw sandbox, reached over
+    // authenticated HTTPS. Require the shared token, and require TLS for any
+    // non-loopback host (plain http is only allowed for a loopback dev endpoint).
+    if (!config.desktopServiceToken) throw new Error("KYLIAN_DESKTOP_SERVICE_TOKEN is required when KYLIAN_EXECUTOR_MODE=nemoclaw-desktop");
+    const url = new URL(config.nemoclawDesktopUrl);
+    if (!loopback.includes(url.hostname) && url.protocol !== "https:") {
+      throw new Error("KYLIAN_NEMOCLAW_DESKTOP_URL must be https:// for a remote NemoClaw sandbox (plain http is only allowed on loopback)");
     }
   }
   if (config.twilioMediaStreamUrl) {

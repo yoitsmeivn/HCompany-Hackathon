@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { RuntimeEvent } from "../../shared/runtimeEvents.js";
 import { RuntimeEventHub } from "../runtime/eventHub.js";
-import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter } from "./haiDesktopAdapter.js";
+import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter, NemoclawDesktopServiceAdapter } from "./haiDesktopAdapter.js";
 
 const TOKEN = "test-desktop-token";
 
@@ -186,6 +186,23 @@ test("the holo-desktop adapter shares the service contract with its own provider
   assert.match(result.taskId, /^holo-/);
   const post = service.calls.find((call) => call.method === "POST" && call.path === "/tasks");
   assert.equal(post?.auth, `Bearer ${TOKEN}`);
+});
+
+test("the nemoclaw-desktop adapter reuses the contract over a remote HTTPS sandbox URL", async () => {
+  const service = new FakeDesktopService();
+  const adapter = new NemoclawDesktopServiceAdapter(
+    { baseUrl: "https://sandbox.nemoclaw.example:8792", token: TOKEN, taskTimeoutSeconds: 30, pollIntervalMs: 1, pollGraceMs: 200 },
+    undefined,
+    service.fetch as typeof fetch,
+  );
+  assert.equal(adapter.provider, "nemoclaw-desktop");
+  const result = await adapter.run(REQUEST);
+  assert.equal(result.status, "completed");
+  assert.match(result.taskId, /^nemo-/);
+  const post = service.calls.find((call) => call.method === "POST" && call.path === "/tasks");
+  assert.ok(post, "the task is submitted to the sandbox service");
+  assert.equal(post.auth, `Bearer ${TOKEN}`);
+  assert.ok(!JSON.stringify(post.body).includes(TOKEN), "the token never appears in the task body");
 });
 
 test("steer and pause are rejected loudly", async () => {

@@ -1,0 +1,53 @@
+# Supervised-process manifest for the HoloDesktop computer-use service inside the
+# NemoClaw sandbox. It runs poc/holo-desktop/holo_service.py on the sandbox's
+# virtual display and publishes its port (TLS-terminated by NemoClaw) to the
+# Kylian backend.
+#
+# NOTE: the supervised-service/manifest schema is NemoClaw-version-specific.
+# Treat this as the intended shape and validate against your installed CLI
+# (`nemoclaw service schema` or the equivalent) before relying on field names.
+name: holo-desktop
+description: >-
+  HoloDesktop computer-use agent (Holo, holo3-1-35b-a3b) serving the Kylian
+  /tasks contract on the sandbox's virtual desktop.
+
+# The virtual display the agent operates. Provided by the desktop channel added
+# in runbook step 2; the window manager should already be running on it.
+desktop:
+  display: ":99"
+
+process:
+  # Copy the Kylian repo's poc/holo-desktop into the sandbox image (or mount it),
+  # install its requirements + holo_desktop + hai-agent-runtime, then run uvicorn.
+  workdir: /opt/kylian/poc/holo-desktop
+  # Bind 0.0.0.0 so NemoClaw can publish the port to the backend — NOT 127.0.0.1,
+  # which would only be reachable inside the sandbox.
+  command:
+    - python
+    - -m
+    - uvicorn
+    - holo_service:app
+    - --app-dir
+    - .
+    - --host
+    - 0.0.0.0
+    - --port
+    - "${HOLO_SERVICE_PORT}"
+  env:
+    HAI_API_KEY: "openshell:resolve:env:HAI_API_KEY"
+    H_API_BASE_URL: "${H_API_BASE_URL}"
+    HOLO_MODEL: "${HOLO_MODEL}"
+    # The service authenticates every /tasks call against this bearer token.
+    KYLIAN_DESKTOP_SERVICE_TOKEN: "openshell:resolve:env:KYLIAN_DESKTOP_SERVICE_TOKEN"
+    DISPLAY: ":99"
+  # One active desktop task at a time; the service enforces this and cancels on
+  # its own watchdog, so no extra supervision is required here.
+  restart: on-failure
+
+# Publish the service to the Kylian backend over TLS. Ingress is further limited
+# to the Kylian host by policies/desktop.yaml.
+publish:
+  port: "${HOLO_SERVICE_PORT}"
+  protocol: https
+  # The resulting endpoint (from `nemoclaw <sandbox> endpoints`) becomes the
+  # backend's KYLIAN_NEMOCLAW_DESKTOP_URL.

@@ -3,7 +3,7 @@ import type { RuntimeEventHub } from "../runtime/eventHub.js";
 import type { ComputerTaskAdapter } from "./types.js";
 import { MockComputerTaskAdapter } from "./mockComputerTaskAdapter.js";
 import { HCompanyComputerTaskAdapter } from "./hCompanyAdapter.js";
-import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter } from "./haiDesktopAdapter.js";
+import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter, NemoclawDesktopServiceAdapter } from "./haiDesktopAdapter.js";
 
 /**
  * Selects the computer-use executor from `KYLIAN_EXECUTOR_MODE`. This is the
@@ -15,6 +15,9 @@ import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter } from "./haiD
  *                       service on 127.0.0.1 (poc/hai-desktop).
  * - `holo-desktop`    → real desktop actions via the local HoloDesktop service
  *                       on 127.0.0.1 (poc/holo-desktop, embedded holo client).
+ * - `nemoclaw-desktop`→ the same HoloDesktop service, but running inside a remote
+ *                       NVIDIA NemoClaw sandbox (isolated virtual desktop) reached
+ *                       over authenticated HTTPS instead of the local machine.
  * - `local-companion` → future authenticated local companion (contract only).
  */
 export function createComputerAdapter(config: ServerConfig, events?: RuntimeEventHub): ComputerTaskAdapter {
@@ -37,6 +40,16 @@ export function createComputerAdapter(config: ServerConfig, events?: RuntimeEven
           baseUrl: config.holoServiceUrl.replace(/\/$/, ""),
           token: config.desktopServiceToken ?? "",
           taskTimeoutSeconds: config.holoTaskTimeoutSeconds,
+        },
+        events,
+      );
+    case "nemoclaw-desktop":
+      // loadConfig guarantees the token exists and the URL is https (or loopback).
+      return new NemoclawDesktopServiceAdapter(
+        {
+          baseUrl: config.nemoclawDesktopUrl.replace(/\/$/, ""),
+          token: config.desktopServiceToken ?? "",
+          taskTimeoutSeconds: config.nemoclawDesktopTaskTimeoutSeconds,
         },
         events,
       );
