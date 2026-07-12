@@ -48,7 +48,7 @@ export class SessionOrchestrationService {
     this.events.emit({ kind: "session-state", sessionId: input.sessionId, state: "active", status: "Active", detail: "Kylian is working" });
     const result = await this.orchestrator.run({ ...input, previousResponseId: this.responseIds.get(input.sessionId) });
     if (result.responseId) this.responseIds.set(input.sessionId, result.responseId);
-    this.events.emit({ kind: "agent-message", sessionId: input.sessionId, text: result.text });
+    this.events.emit({ kind: "agent-message", sessionId: input.sessionId, text: result.text, spoken: result.spoken });
     return result;
   }
 }
