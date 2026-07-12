@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { RuntimeEvent } from "../../shared/runtimeEvents.js";
 import { RuntimeEventHub } from "../runtime/eventHub.js";
-import { HaiDesktopComputerTaskAdapter } from "./haiDesktopAdapter.js";
+import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter } from "./haiDesktopAdapter.js";
 
 const TOKEN = "test-desktop-token";
 
@@ -171,6 +171,21 @@ test("stop() cancels the task on the service", async () => {
   assert.ok(cancel);
   assert.equal(cancel.method, "POST");
   assert.equal(cancel.auth, `Bearer ${TOKEN}`);
+});
+
+test("the holo-desktop adapter shares the service contract with its own provider and task prefix", async () => {
+  const service = new FakeDesktopService();
+  const adapter = new HoloDesktopServiceAdapter(
+    { baseUrl: "http://127.0.0.1:8792", token: TOKEN, taskTimeoutSeconds: 30, pollIntervalMs: 1, pollGraceMs: 200 },
+    undefined,
+    service.fetch as typeof fetch,
+  );
+  assert.equal(adapter.provider, "holo-desktop");
+  const result = await adapter.run(REQUEST);
+  assert.equal(result.status, "completed");
+  assert.match(result.taskId, /^holo-/);
+  const post = service.calls.find((call) => call.method === "POST" && call.path === "/tasks");
+  assert.equal(post?.auth, `Bearer ${TOKEN}`);
 });
 
 test("steer and pause are rejected loudly", async () => {

@@ -12,6 +12,9 @@ test("system prompt frames Kylian as a remote personal assistant, not a task bot
   assert.match(SYSTEM, /Never claim an action succeeded unless the executor confirms it/);
   assert.match(SYSTEM, /Lead with the useful answer/);
   assert.match(SYSTEM, /Do not mention Twilio, Gradium/);
+  assert.match(SYSTEM, /repeat the numbers back and ask the user to confirm/);
+  assert.match(SYSTEM, /Never silently send ambiguous numbers/);
+  assert.match(SYSTEM, /Do not write shell commands or scripts in the instruction/);
 });
 
 test("system prompt forbids repeated self-introductions after the runtime greeting", () => {

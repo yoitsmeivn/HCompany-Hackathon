@@ -3,7 +3,7 @@ import type { RuntimeEventHub } from "../runtime/eventHub.js";
 import type { ComputerTaskAdapter } from "./types.js";
 import { MockComputerTaskAdapter } from "./mockComputerTaskAdapter.js";
 import { HCompanyComputerTaskAdapter } from "./hCompanyAdapter.js";
-import { HaiDesktopComputerTaskAdapter } from "./haiDesktopAdapter.js";
+import { HaiDesktopComputerTaskAdapter, HoloDesktopServiceAdapter } from "./haiDesktopAdapter.js";
 
 /**
  * Selects the computer-use executor from `KYLIAN_EXECUTOR_MODE`. This is the
@@ -13,6 +13,8 @@ import { HaiDesktopComputerTaskAdapter } from "./haiDesktopAdapter.js";
  * - `h-company`       → real desktop actions via the HoloDesktop CLI.
  * - `hai-desktop`     → real desktop actions via the local hai-agents[desktop]
  *                       service on 127.0.0.1 (poc/hai-desktop).
+ * - `holo-desktop`    → real desktop actions via the local HoloDesktop service
+ *                       on 127.0.0.1 (poc/holo-desktop, embedded holo client).
  * - `local-companion` → future authenticated local companion (contract only).
  */
 export function createComputerAdapter(config: ServerConfig, events?: RuntimeEventHub): ComputerTaskAdapter {
@@ -26,6 +28,15 @@ export function createComputerAdapter(config: ServerConfig, events?: RuntimeEven
           baseUrl: config.desktopServiceUrl.replace(/\/$/, ""),
           token: config.desktopServiceToken ?? "",
           taskTimeoutSeconds: config.desktopTaskTimeoutSeconds,
+        },
+        events,
+      );
+    case "holo-desktop":
+      return new HoloDesktopServiceAdapter(
+        {
+          baseUrl: config.holoServiceUrl.replace(/\/$/, ""),
+          token: config.desktopServiceToken ?? "",
+          taskTimeoutSeconds: config.holoTaskTimeoutSeconds,
         },
         events,
       );

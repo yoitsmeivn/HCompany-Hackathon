@@ -2,13 +2,19 @@ import { randomUUID } from "node:crypto";
 import type { RuntimeEventHub } from "../runtime/eventHub.js";
 import type { ComputerTaskAdapter, ComputerTaskRequest, ComputerTaskResult } from "./types.js";
 
-// Real H Company Computer-Use executor. It submits the instruction to the
-// local hai-agents[desktop] service (poc/hai-desktop/desktop_service.py) on
-// 127.0.0.1 and polls for status + safe lifecycle events until the task
-// settles. The service enforces one active desktop task, bearer auth, and
-// never returns model reasoning or screenshots — so everything the adapter
-// sees is safe to forward into runtime events. The bearer token never appears
-// in results, event labels, or errors.
+// Real H Company Computer-Use executors. Both submit the instruction to a
+// local desktop service on 127.0.0.1 and poll for status + safe lifecycle
+// events until the task settles:
+//   - hai-desktop  → poc/hai-desktop/desktop_service.py (hai-agents SDK)
+//   - holo-desktop → poc/holo-desktop/holo_service.py (HoloDesktop embedded
+//     client over one long-lived hai-agent-runtime)
+// The services share one HTTP contract, so the adapters share one
+// implementation. Each service enforces one active desktop task, bearer auth,
+// and never returns model reasoning or screenshots — so everything the
+// adapter sees is safe to forward into runtime events. The bearer token never
+// appears in results, event labels, or errors.
+
+export type LocalDesktopProvider = "hai-desktop" | "holo-desktop";
 
 export interface HaiDesktopAdapterOptions {
   baseUrl: string;
@@ -36,17 +42,16 @@ const POLL_INTERVAL_MS = 1_500;
 const POLL_GRACE_MS = 30_000;
 const MAX_POLL_FAILURES = 4;
 
-export class HaiDesktopComputerTaskAdapter implements ComputerTaskAdapter {
-  readonly provider = "hai-desktop" as const;
-
+export class LocalDesktopServiceAdapter implements ComputerTaskAdapter {
   constructor(
+    readonly provider: LocalDesktopProvider,
     private readonly options: HaiDesktopAdapterOptions,
     private readonly events?: RuntimeEventHub,
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
   async run(request: ComputerTaskRequest): Promise<ComputerTaskResult> {
-    const taskId = `hai-${randomUUID()}`;
+    const taskId = `${this.provider === "holo-desktop" ? "holo" : "hai"}-${randomUUID()}`;
     const submitted = await this.submit(taskId, request);
     if (!submitted.ok) return { taskId, status: "failed", summary: submitted.error };
     this.emit(request.sessionId, "Desktop task queued", "pending");
@@ -93,11 +98,11 @@ export class HaiDesktopComputerTaskAdapter implements ComputerTaskAdapter {
   }
 
   async steer(_taskId: string, _instruction: string): Promise<void> {
-    throw new Error("The hai-desktop executor cannot be steered mid-task");
+    throw new Error(`The ${this.provider} executor cannot be steered mid-task`);
   }
 
   async pause(_taskId: string): Promise<void> {
-    throw new Error("The hai-desktop executor cannot be paused");
+    throw new Error(`The ${this.provider} executor cannot be paused`);
   }
 
   async stop(taskId: string): Promise<void> {
@@ -170,6 +175,18 @@ export class HaiDesktopComputerTaskAdapter implements ComputerTaskAdapter {
 
   private emit(sessionId: string, label: string, state: "done" | "current" | "pending"): void {
     this.events?.emit({ kind: "computer-action", sessionId, label, state });
+  }
+}
+
+export class HaiDesktopComputerTaskAdapter extends LocalDesktopServiceAdapter {
+  constructor(options: HaiDesktopAdapterOptions, events?: RuntimeEventHub, fetchImpl: FetchLike = fetch) {
+    super("hai-desktop", options, events, fetchImpl);
+  }
+}
+
+export class HoloDesktopServiceAdapter extends LocalDesktopServiceAdapter {
+  constructor(options: HaiDesktopAdapterOptions, events?: RuntimeEventHub, fetchImpl: FetchLike = fetch) {
+    super("holo-desktop", options, events, fetchImpl);
   }
 }
 

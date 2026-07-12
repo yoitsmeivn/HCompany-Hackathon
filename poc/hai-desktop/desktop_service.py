@@ -18,6 +18,7 @@ from __future__ import annotations
 import hmac
 import os
 import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
@@ -92,12 +93,20 @@ def create_app(
     def run_task(state: TaskState) -> None:
         record = state.record
         watchdog: Optional[threading.Timer] = None
+        started = time.monotonic()
+        timings: dict[str, int] = {"accepted": 0}
+
+        def mark(name: str) -> None:
+            timings[name] = int((time.monotonic() - started) * 1000)
+            record.timings = dict(timings)
+
         try:
             session = session_starter(state.instruction, float(state.timeout_seconds))
             state.session = session
             record.hSessionId = getattr(session, "id", None)
             record.status = "running"
             state.add_event("agent_started")
+            mark("session_started")
 
             def on_deadline() -> None:
                 if not state.is_terminal():
@@ -111,14 +120,21 @@ def create_app(
             watchdog.daemon = True
             watchdog.start()
 
+            first_event = True
             for event in session.stream():
-                state.add_event(desktop_agent.safe_event_kind(event))
+                # Engines may pre-project a safe kind (holo); otherwise derive it.
+                state.add_event(getattr(event, "safe_kind", None) or desktop_agent.safe_event_kind(event))
+                if first_event:
+                    first_event = False
+                    mark("first_event")
 
             result = session.wait_for_completion()
             record.status = map_h_status(str(result.status), timed_out_by_watchdog=state.timed_out)
             record.outcome = result.outcome
             record.answer = desktop_agent.safe_answer(result.answer)
             record.error = desktop_agent.safe_error(result.error, result.error_code)
+            # Some engines only learn the platform session id at turn end.
+            record.hSessionId = getattr(session, "id", None) or record.hSessionId
         except Exception as exc:  # noqa: BLE001 — worker must never crash the service
             if not state.is_terminal():
                 record.status = (
@@ -128,6 +144,7 @@ def create_app(
         finally:
             if watchdog is not None:
                 watchdog.cancel()
+            mark("settled")
             state.add_event(f"task_{record.status}")
 
     @app.get("/health")

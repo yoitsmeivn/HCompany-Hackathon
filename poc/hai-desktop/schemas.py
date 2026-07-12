@@ -43,6 +43,8 @@ class TaskRecord(BaseModel):
     outcome: Optional[str] = None
     answer: Optional[str] = None
     error: Optional[str] = None
+    # Monotonic millisecond offsets from task acceptance (latency instrumentation).
+    timings: Optional[dict[str, int]] = None
 
 
 class TaskEventsPage(BaseModel):

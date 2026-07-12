@@ -42,6 +42,33 @@ test("hai-desktop mode rejects non-loopback service URLs", () => {
   );
 });
 
+test("selects the holo-desktop executor when mode and token are configured", () => {
+  const adapter = createComputerAdapter(
+    loadConfig({ ...base, KYLIAN_EXECUTOR_MODE: "holo-desktop", KYLIAN_DESKTOP_SERVICE_TOKEN: "secret" }),
+  );
+  assert.equal(adapter.provider, "holo-desktop");
+});
+
+test("holo-desktop mode requires the shared service token", () => {
+  assert.throws(
+    () => loadConfig({ ...base, KYLIAN_EXECUTOR_MODE: "holo-desktop" }),
+    /KYLIAN_DESKTOP_SERVICE_TOKEN is required/,
+  );
+});
+
+test("holo-desktop mode rejects non-loopback service URLs", () => {
+  assert.throws(
+    () =>
+      loadConfig({
+        ...base,
+        KYLIAN_EXECUTOR_MODE: "holo-desktop",
+        KYLIAN_DESKTOP_SERVICE_TOKEN: "secret",
+        KYLIAN_HOLO_SERVICE_URL: "https://example.com:8792",
+      }),
+    /KYLIAN_HOLO_SERVICE_URL must stay on loopback/,
+  );
+});
+
 test("local-companion is not yet implemented and fails loudly", () => {
   assert.throws(
     () => createComputerAdapter(loadConfig({ ...base, KYLIAN_EXECUTOR_MODE: "local-companion" })),
