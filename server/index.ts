@@ -2,9 +2,11 @@ import { createServer } from "node:http";
 import OpenAI from "openai";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
-import { MockComputerTaskAdapter } from "./computer/mockComputerTaskAdapter.js";
+import { createComputerAdapter } from "./computer/createComputerAdapter.js";
 import { OpenAIOrchestrator } from "./orchestrator/openaiOrchestrator.js";
+import { HoloOrchestrator } from "./orchestrator/holoOrchestrator.js";
 import { MockOrchestrator } from "./orchestrator/mockOrchestrator.js";
+import type { Orchestrator } from "./orchestrator/sessionOrchestrationService.js";
 import { SessionOrchestrationService } from "./orchestrator/sessionOrchestrationService.js";
 import { RuntimeEventHub } from "./runtime/eventHub.js";
 import { PolicyStore } from "./runtime/policyStore.js";
@@ -17,13 +19,24 @@ import { ComputerRegistry } from "./computer/registry.js";
 
 const config = loadConfig();
 const events = new RuntimeEventHub();
-const computer = new MockComputerTaskAdapter();
+const computer = createComputerAdapter(config);
 const computers = new ComputerRegistry();
+// Register the demo/voice computer id so voice and simulate-call can reach it.
+// In mock mode this is the fixed "demo-computer"; in h-company mode it is the
+// configured voice/NemoClaw computer the real executor drives.
 if (config.executorMode === "mock") computers.register("demo-computer");
-const orchestrator = config.openaiApiKey
+else computers.register(config.voiceComputerId ?? config.nemoclawComputerId);
+
+// Voice brain: OpenAI Responses (tuned for low-latency streaming) or mock.
+const voiceOrchestrator: Orchestrator = config.openaiApiKey
   ? new OpenAIOrchestrator(new OpenAI({ apiKey: config.openaiApiKey }), config.openaiModel, computer, events)
   : new MockOrchestrator(computer, events);
-const sessions = new SessionOrchestrationService(orchestrator, events);
+// Text brain (WhatsApp/web): H Company Holo via its OpenAI-compatible Chat
+// Completions API when HAI_API_KEY is set; otherwise reuse the voice brain.
+const textOrchestrator: Orchestrator | undefined = config.hApiKey
+  ? new HoloOrchestrator(new OpenAI({ apiKey: config.hApiKey, baseURL: config.hApiBaseUrl }), config.hModel, computer, events)
+  : undefined;
+const sessions = new SessionOrchestrationService(voiceOrchestrator, events, textOrchestrator);
 const policies = new PolicyStore();
 const server = createServer(createApp(config, events, sessions, policies));
 const speech = config.voiceProvider === "gradium" && config.gradiumApiKey && config.gradiumTtsVoice
@@ -67,5 +80,10 @@ server.on("upgrade", (request, socket, head) => {
 });
 
 server.listen(config.port, () => {
-  console.log(`Kylian API listening on http://localhost:${config.port} (${config.openaiApiKey ? config.openaiModel : "mock orchestrator"})`);
+  const voiceBrain = config.openaiApiKey ? `openai:${config.openaiModel}` : "mock";
+  const textBrain = config.hApiKey ? `holo:${config.hModel}` : voiceBrain;
+  console.log(
+    `Kylian API listening on http://localhost:${config.port} ` +
+      `(voice brain: ${voiceBrain}, text brain: ${textBrain}, executor: ${config.executorMode})`,
+  );
 });

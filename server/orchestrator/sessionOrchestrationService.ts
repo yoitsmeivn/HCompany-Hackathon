@@ -6,7 +6,20 @@ export interface Orchestrator { run(input: OrchestratorInput): Promise<Orchestra
 export class SessionOrchestrationService {
   private readonly responseIds = new Map<string, string>();
   private readonly queues = new Map<string, Promise<void>>();
-  constructor(private readonly orchestrator: Orchestrator, private readonly events: RuntimeEventHub) {}
+  /**
+   * `orchestrator` is the default/voice brain. When `textOrchestrator` is
+   * provided, non-voice channels (WhatsApp/web) are routed to it — this is how
+   * the Holo brain serves text while voice keeps the OpenAI Responses path.
+   */
+  constructor(
+    private readonly orchestrator: Orchestrator,
+    private readonly events: RuntimeEventHub,
+    private readonly textOrchestrator?: Orchestrator,
+  ) {}
+
+  private select(channel: OrchestratorInput["channel"]): Orchestrator {
+    return this.textOrchestrator && channel !== "voice" ? this.textOrchestrator : this.orchestrator;
+  }
 
   enqueue(input: Omit<OrchestratorInput, "previousResponseId">): void {
     const next = this.chain(input).then(() => undefined, (error: unknown) => this.emitFailure(input.sessionId, error));
@@ -46,7 +59,7 @@ export class SessionOrchestrationService {
 
   private async process(input: Omit<OrchestratorInput, "previousResponseId">): Promise<OrchestratorResult> {
     this.events.emit({ kind: "session-state", sessionId: input.sessionId, state: "active", status: "Active", detail: "Kylian is working" });
-    const result = await this.orchestrator.run({ ...input, previousResponseId: this.responseIds.get(input.sessionId) });
+    const result = await this.select(input.channel).run({ ...input, previousResponseId: this.responseIds.get(input.sessionId) });
     if (result.responseId) this.responseIds.set(input.sessionId, result.responseId);
     this.events.emit({ kind: "agent-message", sessionId: input.sessionId, text: result.text, spoken: result.spoken });
     return result;

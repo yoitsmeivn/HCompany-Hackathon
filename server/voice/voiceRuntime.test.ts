@@ -11,7 +11,7 @@ test("finalized Gradium transcript reaches the existing orchestrator with demo-c
   const runtime = new VoiceRuntime(recognizer, new ImmediateSynthesizer(), sessions as unknown as SessionOrchestrationService, new RuntimeEventHub(), (id) => id === "demo-computer");
   runtime.open({ callSid: "CA1", streamSid: "MZ1", sessionId: "session-1", computerId: "demo-computer" }, new FakeOutput(), assert.fail);
   recognizer.transcript({ turnId: "turn-1", text: "Find my report" });
-  assert.deepEqual(sessions.inputs, [{ sessionId: "session-1", computerId: "demo-computer", text: "Find my report", allowedFolders: [], allowedApplications: [] }]);
+  assert.deepEqual(sessions.inputs, [{ sessionId: "session-1", computerId: "demo-computer", text: "Find my report", allowedFolders: [], allowedApplications: [], channel: "voice" }]);
 });
 
 test("missing internal computer is rejected before orchestration", () => {
@@ -217,7 +217,7 @@ test("applies the owner's folder and application access from policy", () => {
   );
   runtime.open({ callSid: "CA1", streamSid: "MZ1", sessionId: "session-1", computerId: "demo-computer", from: "+16505550000" }, new FakeOutput(), assert.fail);
   recognizer.transcript({ turnId: "turn-1", text: "Find my report" });
-  assert.deepEqual(sessions.inputs, [{ sessionId: "session-1", computerId: "demo-computer", text: "Find my report", allowedFolders: ["Documents"], allowedApplications: ["Finder"] }]);
+  assert.deepEqual(sessions.inputs, [{ sessionId: "session-1", computerId: "demo-computer", text: "Find my report", allowedFolders: ["Documents"], allowedApplications: ["Finder"], channel: "voice" }]);
 });
 
 test("rejects a call from an unauthorized number without orchestrating", () => {

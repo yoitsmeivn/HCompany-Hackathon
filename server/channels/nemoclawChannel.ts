@@ -107,6 +107,7 @@ export function nemoclawIngress(
         text: message.text + summarizeAttachments(message.attachments),
         allowedFolders: policy?.allowedFolders ?? [],
         allowedApplications: policy?.allowedApplications ?? [],
+        channel: "text",
       });
       response.status(200).json({ messageId: message.messageId, text: result.text });
     } catch (error: unknown) {

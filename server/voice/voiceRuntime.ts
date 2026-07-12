@@ -47,7 +47,10 @@ export class VoiceRuntime {
     let phase: CallPhase = "starting";
     let activeTtsAbortController: AbortController | null = null;
     const policy = this.policyFor(context.computerId);
-    const authorized = true;
+    // The backend is the source of truth for permissions: an empty
+    // authorizedPhone means "no restriction", otherwise the caller's number
+    // must match. Never orchestrate for an unauthorized caller.
+    const authorized = !policy?.authorizedPhone || (context.from ? phoneMatches(policy.authorizedPhone, context.from) : false);
     this.events.emitMonitor({ kind: "call-started", sessionId: context.sessionId, computerId: context.computerId, from: context.from });
     let outputQueue = Promise.resolve();
     let greetingMarkTimer: NodeJS.Timeout | null = null;
@@ -131,6 +134,7 @@ export class VoiceRuntime {
           text,
           allowedFolders: policy?.allowedFolders ?? [],
           allowedApplications: policy?.allowedApplications ?? [],
+          channel: "voice",
         });
       },
       onSpeechActivity: ({ type }) => {

@@ -8,6 +8,15 @@ export interface ServerConfig {
   allowedOrigins: string[];
   openaiApiKey?: string;
   openaiModel: string;
+  // H Company (Holo) OpenAI-compatible inference. When hApiKey is set the text
+  // channels (WhatsApp/web) run their brain on a Holo model; voice stays on the
+  // OpenAI Responses path it is tuned for.
+  hApiKey?: string;
+  hApiBaseUrl: string;
+  hModel: string;
+  // HoloDesktop CLI used by the h-company executor to drive the real desktop.
+  holoCliBin: string;
+  holoTaskTimeoutMs: number;
   executorMode: ExecutorMode;
   voiceProvider: VoiceProvider;
   twilioAccountSid?: string;
@@ -48,6 +57,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     allowedOrigins: stringList(env.KYLIAN_ALLOWED_ORIGINS, ["http://localhost:5173", "http://127.0.0.1:5173"]),
     openaiApiKey: env.OPENAI_API_KEY,
     openaiModel: env.OPENAI_MODEL ?? "gpt-5.4-mini",
+    hApiKey: optionalString(env.HAI_API_KEY),
+    hApiBaseUrl: env.H_API_BASE_URL ?? "https://api.hcompany.ai/v1",
+    hModel: env.H_MODEL ?? "holo3-1-35b-a3b",
+    holoCliBin: env.HOLO_CLI_BIN ?? "holo",
+    holoTaskTimeoutMs: integer(env.HOLO_TASK_TIMEOUT_MS, 180_000, "HOLO_TASK_TIMEOUT_MS", 1_000, 1_800_000),
     executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),
     voiceProvider: enumValue(env.KYLIAN_VOICE_PROVIDER, ["gradium", "openai"] as const, gradiumConfigured ? "gradium" : "openai", "KYLIAN_VOICE_PROVIDER"),
     twilioAccountSid: env.TWILIO_ACCOUNT_SID,

@@ -46,13 +46,19 @@ Current H Company documentation describes:
 
 The production choice should be either a local-companion transport that invokes HoloDesktop, or a verified MCP/ACP/A2A client. That implementation must translate actual HoloDesktop task events into `RuntimeEvent` values.
 
-### Executor status (re-checked 2026-07-12)
+### Executor status (updated 2026-07-12, hackathon integration)
 
-The executor is intentionally left **mocked**. `server/index.ts` always constructs `MockComputerTaskAdapter`; `KYLIAN_EXECUTOR_MODE` does not currently select an adapter (it only gates `demo-computer` registry registration for voice and the `simulate-call` route). `HCompanyComputerTaskAdapter` is a deliberate stub and is never instantiated.
+The executor is now **selected from `KYLIAN_EXECUTOR_MODE`** via `createComputerAdapter` (`server/computer/createComputerAdapter.ts`), which `server/index.ts` calls instead of hardcoding the mock:
 
-H Company has since shipped **HoloDesktop CLI** ([hcompany.ai/holodesktop-cli](https://hcompany.ai/holodesktop-cli), [github.com/hcompai/holo-desktop-cli](https://github.com/hcompai/holo-desktop-cli)): an open-source client that runs H Agent (Holo3) locally and exposes **MCP, ACP, and A2A** surfaces, with model inference via the H Models API or self-hosted. It explicitly lists OpenClaw/NemoClaw and Claude Code as supported harnesses.
+- `mock` → `MockComputerTaskAdapter` (deterministic dev/demo fallback).
+- `h-company` → `HCompanyComputerTaskAdapter`, which performs **real desktop actions** by invoking the **HoloDesktop CLI** (`holo run "<instruction>"`) with `execFile` (argv array, no shell — the model-authored instruction is never interpolated into a shell command line). stdout becomes the task summary; a non-zero exit becomes a `failed` result.
+- `local-companion` → reserved for the future authenticated local companion (`server/companion/contracts.ts`); the factory throws until implemented.
 
-This is **not** a drop-in hosted task API the backend can POST to — it is a local desktop agent surface. Adopting it is the documented `local-companion` path: implement `LocalCompanionTaskAdapter` (see `server/companion/contracts.ts`) as an MCP/ACP client that drives a running HoloDesktop instance, with Holo model credentials, and translate its task events into `RuntimeEvent`s. Estimated ~3–5 focused days; it is orthogonal to the NemoClaw/WhatsApp channel, which works end-to-end on the mock today. Left for a follow-up because the current milestone does not require real desktop control.
+HoloDesktop CLI ([hcompany.ai/holodesktop-cli](https://hcompany.ai/holodesktop-cli), [github.com/hcompai/holo-desktop-cli](https://github.com/hcompai/holo-desktop-cli)) runs H Agent (Holo3) locally and also exposes **MCP, ACP, and A2A** surfaces (`holo mcp` / `holo acp` / `holo serve`). The one-shot `holo run` path was chosen for the demo because it is the fastest reliable way to get **real** computer actions; A2A (`holo serve`) is the natural upgrade for mid-task steer/pause/stop, which the one-shot CLI does not offer (those adapter methods reject).
+
+### Brain: H Company Holo for text channels
+
+`HoloOrchestrator` (`server/orchestrator/holoOrchestrator.ts`) runs the **text-channel brain** (WhatsApp/web) on a Holo model through H's **OpenAI-compatible Chat Completions** API (`https://api.hcompany.ai/v1`, key `HAI_API_KEY`, model `holo3-1-35b-a3b`). It mirrors the OpenAI orchestrator's `computer_task` tool loop and emits the same runtime events (via the shared `runComputerTask` helper), but keeps its own bounded per-session message history because Holo does not implement the OpenAI Responses API (`previous_response_id`). Voice stays on `OpenAIOrchestrator` for its tuned streaming/latency behaviour. `SessionOrchestrationService` routes per `OrchestratorInput.channel` (`"voice"` → OpenAI, otherwise → Holo when `HAI_API_KEY` is configured). This is the same model NemoClaw runs in-sandbox, so the NVIDIA side-challenge and the backend text brain share one H Company brain.
 
 Official sources:
 

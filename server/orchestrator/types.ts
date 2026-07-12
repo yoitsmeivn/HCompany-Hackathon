@@ -5,6 +5,10 @@ export interface OrchestratorInput {
   allowedFolders: string[];
   allowedApplications: string[];
   previousResponseId?: string;
+  // Which channel the message arrived on. Voice stays on the OpenAI Responses
+  // brain it is tuned for; text channels (WhatsApp/web) may use the Holo brain.
+  // Undefined is treated as "text".
+  channel?: "voice" | "text";
 }
 
 export interface OrchestratorResult {
