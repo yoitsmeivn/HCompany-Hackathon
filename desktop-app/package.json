@@ -1,0 +1,59 @@
+{
+  "name": "kylian-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "concurrently -k -n web,electron \"npm run dev:web --prefix ..\" \"npm run launch\"",
+    "launch": "wait-on tcp:5173 && electron .",
+    "build": "npm run build --prefix .. && electron-builder"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.kylian.desktop",
+    "productName": "Kylian",
+    "asar": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "dist"
+      },
+      {
+        "from": "../server",
+        "to": "server"
+      },
+      {
+        "from": "../shared",
+        "to": "shared"
+      },
+      {
+        "from": "../node_modules",
+        "to": "node_modules"
+      },
+      {
+        "from": "../package.json",
+        "to": "package.json"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.utilities"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

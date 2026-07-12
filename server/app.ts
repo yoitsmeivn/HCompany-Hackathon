@@ -1,4 +1,5 @@
 import express from "express";
+import path from "node:path";
 import type { ServerConfig } from "./config.js";
 import type { RuntimeEventHub } from "./runtime/eventHub.js";
 import type { SessionOrchestrationService } from "./orchestrator/sessionOrchestrationService.js";
@@ -65,6 +66,14 @@ export function createApp(config: ServerConfig, events: RuntimeEventHub, session
       response.status(502).json({ error: { code: "TWILIO_CALL_FAILED", message: "Twilio could not queue the test call" } });
     }
   });
+  if (config.staticDir) {
+    const staticDir = config.staticDir;
+    app.use(express.static(staticDir));
+    app.get(/^(?!\/api).*/, (_request: express.Request, response: express.Response) =>
+      response.sendFile(path.join(staticDir, "index.html")),
+    );
+  }
+
   app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
     void _next;
     const message = error instanceof Error ? error.message : "Internal server error";

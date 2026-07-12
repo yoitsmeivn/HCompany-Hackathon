@@ -10,7 +10,7 @@ export interface AppState {
   files: FileItem[];
   live: Record<ID, LiveSessionData>;
   activeComputerId: ID | null;
-  preferences: { channel: string };
+  preferences: { channel: string; name: string; phone: string };
   loading: { computers: boolean; sessions: boolean; files: boolean };
   errors: { computers: string | null; sessions: string | null; files: string | null };
 }
@@ -21,7 +21,7 @@ export const initialState: AppState = {
   files: [],
   live: {},
   activeComputerId: null,
-  preferences: { channel: "Phone" },
+  preferences: { channel: "Phone", name: "", phone: "" },
   loading: { computers: true, sessions: true, files: true },
   errors: { computers: null, sessions: null, files: null },
 };

@@ -4,6 +4,7 @@ export type ExecutorMode = "mock" | "h-company" | "local-companion";
 export interface ServerConfig {
   port: number;
   publicBaseUrl: string;
+  staticDir?: string;
   openaiApiKey?: string;
   openaiModel: string;
   executorMode: ExecutorMode;
@@ -34,6 +35,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const config: ServerConfig = {
     port,
     publicBaseUrl: env.KYLIAN_PUBLIC_BASE_URL ?? `http://localhost:${port}`,
+    staticDir: env.KYLIAN_STATIC_DIR,
     openaiApiKey: env.OPENAI_API_KEY,
     openaiModel: env.OPENAI_MODEL ?? "gpt-5.4-mini",
     executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),

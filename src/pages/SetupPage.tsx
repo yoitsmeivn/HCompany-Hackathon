@@ -34,8 +34,10 @@ export default function SetupPage() {
   const recentSessions = selectRecentSessions(state, 3);
 
   const [access, setAccess] = useState<AccessPolicy>(DEFAULT_ACCESS_POLICY);
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
+  const phone = state.preferences.phone;
+  const setPhone = (value: string) => dispatch(preferencesChanged({ phone: value }));
+  const name = state.preferences.name;
+  const setName = (value: string) => dispatch(preferencesChanged({ name: value }));
   const [waiting, setWaiting] = useState(false);
   const [companion, setCompanion] = useState<CompanionInfo | null>(null);
   const [callState, setCallState] = useState<"idle" | "calling" | "queued">("idle");
