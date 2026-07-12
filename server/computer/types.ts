@@ -12,6 +12,10 @@ export interface ComputerTaskResult {
   summary: string;
   candidates?: Array<{ name: string; meta: string; ext: string; evidence?: string }>;
   approval?: { summary: string; fileName: string };
+  // Files the desktop agent reported via the structured ARTIFACTS_JSON marker.
+  // The server validates each localPath before turning it into a capability;
+  // the model never receives these paths.
+  artifacts?: Array<{ localPath: string; displayName: string }>;
 }
 
 export interface ComputerTaskAdapter {

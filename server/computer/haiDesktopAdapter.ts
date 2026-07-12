@@ -41,6 +41,7 @@ interface ServiceTaskRecord {
   outcome: string | null;
   answer: string | null;
   error: string | null;
+  artifacts?: Array<{ localPath: string; displayName: string }>;
 }
 
 const TASK_PREFIX: Record<LocalDesktopProvider, string> = {
@@ -175,11 +176,12 @@ export class LocalDesktopServiceAdapter implements ComputerTaskAdapter {
   }
 
   private toResult(taskId: string, record: ServiceTaskRecord): ComputerTaskResult {
+    const artifacts = (record.artifacts ?? []).filter((a) => a?.localPath && a?.displayName);
     if (record.status === "completed") {
       const summary =
         record.answer?.trim() ||
         (record.outcome ? `Desktop task finished (${record.outcome}).` : "Desktop task completed.");
-      return { taskId, status: "completed", summary: truncate(summary) };
+      return { taskId, status: "completed", summary: truncate(summary), ...(artifacts.length > 0 ? { artifacts } : {}) };
     }
     const detail = record.error?.trim();
     const summary =

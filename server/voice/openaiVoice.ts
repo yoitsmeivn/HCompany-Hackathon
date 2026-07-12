@@ -3,12 +3,30 @@ import WebSocket from "ws";
 import { pcm24kToMulaw8k } from "./audio.js";
 import type { SpeechRecognizer, SpeechSynthesizer, TranscriptionSession } from "./types.js";
 
+/**
+ * Suppresses a duplicate final transcript (same text re-emitted within a short
+ * window) so one utterance can't launch two orchestration turns. The Gradium
+ * recognizer dedups on stable turn ids; the OpenAI realtime stream has no such
+ * id, so we dedup on the text itself.
+ */
+export function makeTranscriptGate(windowMs = 2000): (text: string, now: number) => boolean {
+  let lastText = "";
+  let lastAt = 0;
+  return (text, now) => {
+    if (text === lastText && now - lastAt < windowMs) return false;
+    lastText = text;
+    lastAt = now;
+    return true;
+  };
+}
+
 export class OpenAIRealtimeTranscriber implements SpeechRecognizer {
   constructor(private readonly apiKey: string, private readonly model: string) {}
 
   open(input: Parameters<SpeechRecognizer["open"]>[0]): TranscriptionSession {
     const socket = new WebSocket("wss://api.openai.com/v1/realtime?intent=transcription", { headers: { Authorization: `Bearer ${this.apiKey}` } });
     const pending: string[] = [];
+    const gate = makeTranscriptGate();
     socket.on("open", () => {
       socket.send(JSON.stringify({
         type: "session.update",
@@ -22,7 +40,10 @@ export class OpenAIRealtimeTranscriber implements SpeechRecognizer {
     socket.on("message", (data) => {
       try {
         const event = JSON.parse(data.toString()) as { type?: string; transcript?: string; error?: { message?: string } };
-        if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript?.trim()) void input.onTranscript({ turnId: `openai-${input.streamSid}-${Date.now()}`, text: event.transcript.trim() });
+        if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript?.trim()) {
+          const text = event.transcript.trim();
+          if (gate(text, Date.now())) void input.onTranscript({ turnId: `openai-${input.streamSid}-${Date.now()}`, text });
+        }
         if (event.type === "error") input.onError(new Error(event.error?.message ?? "OpenAI transcription error"));
       } catch { input.onError(new Error("OpenAI returned an invalid transcription event")); }
     });

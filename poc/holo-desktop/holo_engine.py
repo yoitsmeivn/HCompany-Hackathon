@@ -18,6 +18,7 @@ Key properties:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import queue
 import threading
@@ -34,14 +35,31 @@ DEFAULT_MODEL = os.environ.get("HOLO_MODEL", "holo3-1-35b-a3b")
 AGENT_PORT = int(os.environ.get("HOLO_AGENT_PORT", "18795"))
 MAX_STEPS = int(os.environ.get("KYLIAN_HOLO_MAX_STEPS", "30"))
 
-# Structural guard appended to every instruction (task normalization). The
-# orchestrator authors the task; this bounds it for a visual agent.
+# Structural guard appended to every instruction (task normalization). It is
+# operation-AGNOSTIC and defers to the task's own instructions about sending —
+# the orchestrator authors operation-aware send/draft rules, and this guard must
+# never contradict them with a blanket "do not send" clause.
 TASK_GUARD = (
-    "Complete exactly this task, then stop. Do not interact with any "
-    "application the task does not require. Use the named application's "
-    "graphical interface; do not open Terminal or run shell commands unless "
-    "the task explicitly asks for them. Do not send, submit, or delete "
-    "anything unless the task explicitly says so."
+    "Complete exactly this task as written, then stop. Follow the task's own "
+    "instructions about whether to send, submit, or leave a draft. Do not "
+    "delete, purchase, or publish anything the task does not explicitly "
+    "request. Do not interact with unrelated applications. Operate the "
+    "graphical interface; do not open Terminal or run shell commands — in-app "
+    "keyboard shortcuts such as Command+Shift+G in a file picker are allowed."
+)
+
+
+# Machine-readable artifact reporting. Every task is asked to end with this
+# marker if it located a file, so the host never has to regex-scan prose for
+# paths. The orchestrator still validates each path independently.
+ARTIFACT_MARKER = "ARTIFACTS_JSON:"
+ARTIFACT_DIRECTIVE = (
+    f" If you located one or more local files, end your final answer with exactly one line "
+    f'starting with "{ARTIFACT_MARKER}" followed by a JSON array of objects with "localPath" '
+    f'(the real absolute path, never a placeholder like /Users/[username]) and "displayName" '
+    f"(the file name). Example: {ARTIFACT_MARKER} "
+    f'[{{"localPath": "/Users/you/Desktop/file.pdf", "displayName": "file.pdf"}}]. '
+    f"If you located no files, omit this line."
 )
 
 
@@ -51,7 +69,46 @@ def normalize_task(instruction: str) -> str:
         return text
     if not text.endswith((".", "!", "?")):
         text += "."
-    return f"{text} {TASK_GUARD}"
+    return f"{text} {TASK_GUARD}{ARTIFACT_DIRECTIVE}"
+
+
+def parse_artifacts(answer: Optional[str]) -> tuple[list[dict[str, str]], Optional[str]]:
+    """Extract the last ARTIFACTS_JSON line from an answer.
+
+    Returns (artifacts, cleaned_summary). Malformed records are dropped;
+    placeholder paths (containing '[' before the basename) are rejected. The
+    marker line is stripped from the human-readable summary.
+    """
+    if not answer:
+        return [], answer
+    lines = answer.splitlines()
+    kept: list[str] = []
+    artifacts: list[dict[str, str]] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith(ARTIFACT_MARKER):
+            payload = stripped[len(ARTIFACT_MARKER):].strip()
+            try:
+                parsed = json.loads(payload)
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(parsed, list):
+                continue
+            for record in parsed:
+                if not isinstance(record, dict):
+                    continue
+                local_path = record.get("localPath")
+                display_name = record.get("displayName")
+                if not isinstance(local_path, str) or not isinstance(display_name, str):
+                    continue
+                if not local_path.startswith("/") or "[" in local_path or "]" in local_path:
+                    continue
+                artifacts.append({"localPath": local_path, "displayName": display_name})
+            # Drop the marker line from the summary; keep the last one's artifacts.
+        else:
+            kept.append(line)
+    cleaned = "\n".join(kept).strip() or answer
+    return artifacts, cleaned
 
 
 # --- one background asyncio loop + one shared daemon/client -----------------
@@ -166,13 +223,17 @@ class HoloSessionHandle:
         try:
             outcome = self._future.result()
         except asyncio.CancelledError:
-            return SimpleNamespace(status="interrupted", answer=None, outcome=None, error=None, error_code=None)
+            return SimpleNamespace(status="interrupted", answer=None, outcome=None, error=None, error_code=None, artifacts=[])
         status = getattr(getattr(outcome, "status", None), "value", None) or "failed"
         # IDLE counts as a successful turn end per the official session runner.
         if status in ("completed", "idle"):
             status = "completed"
-        answer = getattr(outcome, "answer", "") or None
-        return SimpleNamespace(status=status, answer=answer, outcome=None, error=getattr(outcome, "error", None), error_code=None)
+        raw_answer = getattr(outcome, "answer", "") or None
+        artifacts, answer = parse_artifacts(raw_answer)
+        return SimpleNamespace(
+            status=status, answer=answer, outcome=None,
+            error=getattr(outcome, "error", None), error_code=None, artifacts=artifacts,
+        )
 
     def cancel(self) -> None:
         session_id = self.id

@@ -29,6 +29,7 @@ from fastapi.responses import JSONResponse
 import desktop_agent
 from schemas import (
     TERMINAL_STATUSES,
+    ArtifactRef,
     TaskEvent,
     TaskEventsPage,
     TaskFrame,
@@ -146,6 +147,14 @@ def create_app(
             record.outcome = result.outcome
             record.answer = desktop_agent.safe_answer(result.answer)
             record.error = desktop_agent.safe_error(result.error, result.error_code)
+            # Structured artifacts the agent reported (holo engine). Validated
+            # again independently on the Node side before any delivery.
+            reported = getattr(result, "artifacts", None) or []
+            record.artifacts = [
+                ArtifactRef(localPath=item["localPath"], displayName=item["displayName"])
+                for item in reported
+                if isinstance(item, dict) and item.get("localPath") and item.get("displayName")
+            ]
             # Some engines only learn the platform session id at turn end.
             record.hSessionId = getattr(session, "id", None) or record.hSessionId
         except Exception as exc:  # noqa: BLE001 — worker must never crash the service

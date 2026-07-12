@@ -20,7 +20,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "hai-desktop"))
 
 import holo_engine
-from holo_engine import HoloSessionHandle, normalize_task
+from holo_engine import HoloSessionHandle, normalize_task, parse_artifacts
 
 
 def outcome(status: str = "completed", answer: str = "The result is 1,200.", error=None):
@@ -57,12 +57,39 @@ class EngineTests(unittest.TestCase):
     def tearDown(self):
         holo_engine._client = None
 
+    def test_normalize_task_requests_the_artifact_marker(self):
+        normalized = normalize_task("Find my resume on the Desktop")
+        self.assertIn("ARTIFACTS_JSON:", normalized)
+        self.assertIn("never a placeholder", normalized)
+
+    def test_parse_artifacts_valid(self):
+        answer = 'Found the resume.\nARTIFACTS_JSON: [{"localPath": "/Users/ivan/Desktop/CV.pdf", "displayName": "CV.pdf"}]'
+        artifacts, summary = parse_artifacts(answer)
+        self.assertEqual(artifacts, [{"localPath": "/Users/ivan/Desktop/CV.pdf", "displayName": "CV.pdf"}])
+        self.assertEqual(summary, "Found the resume.")
+        self.assertNotIn("ARTIFACTS_JSON", summary)
+
+    def test_parse_artifacts_drops_placeholder_and_malformed(self):
+        placeholder = 'ARTIFACTS_JSON: [{"localPath": "/Users/[username]/Desktop/CV.pdf", "displayName": "CV.pdf"}]'
+        self.assertEqual(parse_artifacts(placeholder)[0], [])
+        malformed = "ARTIFACTS_JSON: not-json"
+        self.assertEqual(parse_artifacts(malformed)[0], [])
+        missing_field = 'ARTIFACTS_JSON: [{"localPath": "/Users/ivan/CV.pdf"}]'
+        self.assertEqual(parse_artifacts(missing_field)[0], [])
+
+    def test_parse_artifacts_no_marker(self):
+        artifacts, summary = parse_artifacts("Just a normal answer with no files.")
+        self.assertEqual(artifacts, [])
+        self.assertEqual(summary, "Just a normal answer with no files.")
+
     def test_normalize_task_appends_guard_and_punctuation(self):
         normalized = normalize_task("Open Finder and locate the resume PDF")
         self.assertTrue(normalized.startswith("Open Finder and locate the resume PDF."))
-        self.assertIn("Complete exactly this task, then stop", normalized)
+        self.assertIn("Complete exactly this task as written", normalized)
         self.assertIn("do not open Terminal or run shell commands", normalized)
-        self.assertIn("Do not send, submit, or delete anything", normalized)
+        self.assertIn("Command+Shift+G", normalized)
+        # The blanket "do not send/submit/delete" contradiction must be gone.
+        self.assertNotIn("Do not send, submit, or delete anything", normalized)
         self.assertEqual(normalize_task("Do it now!").count("!"), 1)
 
     def test_completed_turn_streams_safe_events_and_answer(self):

@@ -7,6 +7,9 @@ import type { SessionOrchestrationService } from "./orchestrator/sessionOrchestr
 import { PolicyStore } from "./runtime/policyStore.js";
 import { incomingVoice, validateTwilio } from "./twilio/routes.js";
 import { nemoclawIngress, validateNemoclaw } from "./channels/nemoclawChannel.js";
+import { twilioWhatsappInbound, type OutboundWhatsApp } from "./channels/twilioWhatsappChannel.js";
+import { createReadStream } from "node:fs";
+import type { ArtifactPublisher } from "./artifacts/artifactPublisher.js";
 import { OutboundCallConfigurationError, OutboundCallService } from "./twilio/outboundCalls.js";
 import { buildTwilioCallErrorResponse, getTwilioErrorDiagnostic } from "./twilio/errorDiagnostics.js";
 
@@ -17,7 +20,7 @@ const policySchema = z.object({
   allowedApplications: z.array(z.string().max(200)).max(100).default([]),
 });
 
-export function createApp(config: ServerConfig, events: RuntimeEventHub, sessions: SessionOrchestrationService, policies = new PolicyStore(), outboundCalls = new OutboundCallService(config)) {
+export function createApp(config: ServerConfig, events: RuntimeEventHub, sessions: SessionOrchestrationService, policies = new PolicyStore(), outboundCalls = new OutboundCallService(config), whatsapp?: OutboundWhatsApp, artifactPublisher?: ArtifactPublisher) {
   const app = express();
   app.disable("x-powered-by");
   app.use((request, response, next) => {
@@ -119,7 +122,25 @@ export function createApp(config: ServerConfig, events: RuntimeEventHub, session
 
   app.post("/api/channels/nemoclaw/messages", validateNemoclaw(config), nemoclawIngress(config, sessions, policies));
 
+  // Single-use signed artifact delivery for Twilio WhatsApp media. The token
+  // IS the signature: 256-bit random, expiring, consumed on first stream, and
+  // re-validated against the artifact before any bytes leave the machine.
+  // Tokens are never logged. This is not a static file route.
+  if (artifactPublisher) {
+    app.get("/api/artifacts/:token", async (request, response) => {
+      const record = await artifactPublisher.redeem(request.params.token);
+      if (!record) { response.status(404).end(); return; }
+      response.status(200).set({ "Content-Type": record.mimeType, "Content-Length": String(record.sizeBytes), "Cache-Control": "no-store" });
+      createReadStream(record.localPath).pipe(response);
+      console.log(`[artifacts] delivered ${record.artifactId} (${record.displayName})`);
+    });
+  }
+
   app.post("/api/twilio/voice", validateTwilio(config), incomingVoice(config));
+  // WhatsApp Sandbox ingress — dedicated route, never shared with voice.
+  if (config.kylianWhatsappEnabled && whatsapp) {
+    app.post("/api/twilio/whatsapp", validateTwilio(config), twilioWhatsappInbound(config, sessions, policies, whatsapp));
+  }
   app.post("/api/twilio/calls", async (request, response) => {
     try {
       response.status(202).json(await outboundCalls.start(request.body));

@@ -45,6 +45,14 @@ class TaskEvent(BaseModel):
     frame: Optional[TaskFrame] = None
 
 
+class ArtifactRef(BaseModel):
+    """A file the desktop agent located, reported as a structured record.
+    The Node ArtifactStore still validates each path independently."""
+
+    localPath: str
+    displayName: str
+
+
 class TaskRecord(BaseModel):
     """Task state returned by every task endpoint."""
 
@@ -54,6 +62,8 @@ class TaskRecord(BaseModel):
     outcome: Optional[str] = None
     answer: Optional[str] = None
     error: Optional[str] = None
+    # Files the agent reported via the ARTIFACTS_JSON marker (may be empty).
+    artifacts: list[ArtifactRef] = []
     # Monotonic millisecond offsets from task acceptance (latency instrumentation).
     timings: Optional[dict[str, int]] = None
 

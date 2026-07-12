@@ -16,6 +16,10 @@ import { GradiumTtsSession } from "./voice/gradiumTtsSession.js";
 import { VoiceRuntime } from "./voice/voiceRuntime.js";
 import { createTwilioMediaStreamServer } from "./twilio/mediaStreamServer.js";
 import { ComputerRegistry } from "./computer/registry.js";
+import { WhatsAppSender } from "./twilio/whatsappSender.js";
+import { ArtifactStore } from "./artifacts/artifactStore.js";
+import { ArtifactPublisher } from "./artifacts/artifactPublisher.js";
+import { ZipService } from "./artifacts/zipService.js";
 
 const config = loadConfig();
 const events = new RuntimeEventHub();
@@ -27,9 +31,16 @@ const computers = new ComputerRegistry();
 if (config.executorMode === "mock") computers.register("demo-computer");
 else computers.register(config.voiceComputerId ?? config.nemoclawComputerId);
 
+// Outbound WhatsApp (Twilio Sandbox) — built only when the channel is enabled.
+const whatsapp = config.kylianWhatsappEnabled ? new WhatsAppSender(config) : undefined;
+// Artifact capabilities: server-validated file handles + single-use signed
+// delivery URLs on the existing tunnel (never the local filesystem directly).
+const artifacts = new ArtifactStore(config.kylianArtifactAllowedRoots, config.kylianArtifactMaxBytes);
+const artifactPublisher = new ArtifactPublisher(artifacts, config.publicBaseUrl);
+const zipService = new ZipService(artifacts, config.kylianArtifactMaxBytes);
 // Voice brain: OpenAI Responses (tuned for low-latency streaming) or mock.
 const voiceOrchestrator: Orchestrator = config.openaiApiKey
-  ? new OpenAIOrchestrator(new OpenAI({ apiKey: config.openaiApiKey }), config.openaiModel, computer, events)
+  ? new OpenAIOrchestrator(new OpenAI({ apiKey: config.openaiApiKey }), config.openaiModel, computer, events, whatsapp, { artifacts, publisher: artifactPublisher, zip: zipService }, config.kylianOwnerEmail)
   : new MockOrchestrator(computer, events);
 // Text brain (WhatsApp/web): H Company Holo via its OpenAI-compatible Chat
 // Completions API when HAI_API_KEY is set; otherwise reuse the voice brain.
@@ -38,7 +49,7 @@ const textOrchestrator: Orchestrator | undefined = config.hApiKey
   : undefined;
 const sessions = new SessionOrchestrationService(voiceOrchestrator, events, textOrchestrator);
 const policies = new PolicyStore();
-const server = createServer(createApp(config, events, sessions, policies));
+const server = createServer(createApp(config, events, sessions, policies, undefined, whatsapp, artifactPublisher));
 const speech = config.voiceProvider === "gradium" && config.gradiumApiKey && config.gradiumTtsVoice
   ? {
       recognizer: new GradiumStreamingTranscriber({
