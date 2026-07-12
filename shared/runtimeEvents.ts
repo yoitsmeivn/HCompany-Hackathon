@@ -1,6 +1,7 @@
 export type RuntimeEvent =
   | { kind: "companion-status"; computerId: string; status: "configured" | "connecting" | "connected" | "offline" }
-  | { kind: "agent-message"; sessionId: string; text: string; who?: string }
+  | { kind: "agent-message"; sessionId: string; text: string; who?: string; spoken?: boolean }
+  | { kind: "agent-speech"; sessionId: string; text: string }
   | { kind: "user-message"; sessionId: string; text: string; who?: string }
   | { kind: "computer-action"; sessionId: string; label: string; state?: "done" | "current" | "pending" }
   | { kind: "candidate-file"; sessionId: string; candidate: { name: string; meta: string; ext: string; evidence?: string } }

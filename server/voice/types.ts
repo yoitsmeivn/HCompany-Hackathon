@@ -29,6 +29,9 @@ export interface SpeechSynthesizer {
     streamSid: string;
     signal?: AbortSignal;
   }): AsyncIterable<string>;
+  // Optional per-call connection lifecycle (used by session-reusing synthesizers).
+  prewarm?(streamSid: string): void;
+  release?(streamSid: string): void;
 }
 
 export interface WebSocketLike {

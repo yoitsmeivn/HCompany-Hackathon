@@ -41,6 +41,50 @@ test("tracks lifecycle, forwards inbound audio, and cleans up on stop", () => {
   assert.equal(voice.closed, 1);
 });
 
+test("start opens the voice runtime exactly once and duplicate start is ignored", () => {
+  const socket = new FakeSocket();
+  const voice = new FakeVoice();
+  const connection = new TwilioMediaStreamConnection(socket, voice as unknown as VoiceRuntime, "fallback");
+  connection.handleRaw(JSON.stringify({ event: "connected", protocol: "Call", version: "1.0.0" }));
+  connection.handleRaw(JSON.stringify(startMessage));
+  connection.handleRaw(JSON.stringify(startMessage));
+  assert.equal(voice.opens, 1);
+  assert.equal(socket.closed, null);
+  assert.equal(connection.state.lifecycle, "streaming");
+});
+
+test("runtime audio is framed as Twilio media with the active streamSid and the socket stays open", () => {
+  const socket = new FakeSocket();
+  const voice = new FakeVoice();
+  const connection = new TwilioMediaStreamConnection(socket, voice as unknown as VoiceRuntime, "fallback");
+  connection.handleRaw(JSON.stringify({ event: "connected", protocol: "Call", version: "1.0.0" }));
+  connection.handleRaw(JSON.stringify(startMessage));
+  voice.output?.audio("qrvM");
+  voice.output?.audio("3q2+");
+  voice.output?.mark();
+  const frames = socket.sent.map((value) => JSON.parse(value) as Record<string, unknown>);
+  assert.deepEqual(frames[0], { event: "media", streamSid: "MZ123", media: { payload: "qrvM" } });
+  assert.deepEqual(frames[1], { event: "media", streamSid: "MZ123", media: { payload: "3q2+" } });
+  assert.equal(frames[2]?.event, "mark");
+  assert.equal(frames[2]?.streamSid, "MZ123");
+  assert.equal(socket.closed, null);
+  assert.equal(connection.state.lifecycle, "streaming");
+});
+
+test("named marks frame outbound and Twilio mark acks are forwarded to the voice call", () => {
+  const socket = new FakeSocket();
+  const voice = new FakeVoice();
+  const connection = new TwilioMediaStreamConnection(socket, voice as unknown as VoiceRuntime, "fallback");
+  connection.handleRaw(JSON.stringify({ event: "connected", protocol: "Call", version: "1.0.0" }));
+  connection.handleRaw(JSON.stringify(startMessage));
+  voice.output?.mark("greeting-complete:CA123");
+  const frame = JSON.parse(socket.sent.at(-1) ?? "{}") as { event: string; streamSid: string; mark: { name: string } };
+  assert.deepEqual(frame, { event: "mark", streamSid: "MZ123", mark: { name: "greeting-complete:CA123" } });
+  connection.handleRaw(JSON.stringify({ event: "mark", sequenceNumber: "5", streamSid: "MZ123", mark: { name: "greeting-complete:CA123" } }));
+  assert.deepEqual(voice.acks, ["greeting-complete:CA123"]);
+  assert.equal(socket.closed, null);
+});
+
 test("closes malformed connections without logging payloads", () => {
   const socket = new FakeSocket();
   const connection = new TwilioMediaStreamConnection(socket, new FakeVoice() as unknown as VoiceRuntime, "fallback");
@@ -86,8 +130,17 @@ class FakeSocket implements TwilioSocket {
 
 class FakeVoice {
   audio: string[] = [];
+  acks: string[] = [];
   closed = 0;
-  open() {
-    return { inboundAudio: (audio: string) => this.audio.push(audio), close: () => { this.closed += 1; } };
+  opens = 0;
+  output: { audio(payload: string): void; mark(name?: string): void; clear(): void } | null = null;
+  open(_context: unknown, output: { audio(payload: string): void; mark(name?: string): void; clear(): void }) {
+    this.opens += 1;
+    this.output = output;
+    return {
+      inboundAudio: (audio: string) => this.audio.push(audio),
+      markAcknowledged: (name: string) => this.acks.push(name),
+      close: () => { this.closed += 1; },
+    };
   }
 }

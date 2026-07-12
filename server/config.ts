@@ -5,6 +5,7 @@ export interface ServerConfig {
   port: number;
   publicBaseUrl: string;
   staticDir?: string;
+  allowedOrigins: string[];
   openaiApiKey?: string;
   openaiModel: string;
   executorMode: ExecutorMode;
@@ -22,6 +23,11 @@ export interface ServerConfig {
   gradiumSttModel: string;
   gradiumTtsModel: string;
   gradiumTtsVoice?: string;
+  gradiumTtsSpeed: number;
+  gradiumTtsTemperature: number;
+  gradiumTtsVoiceSimilarity: number;
+  gradiumTtsRewriteRules?: string;
+  gradiumTtsPronunciationId?: string;
   gradiumSttLanguage: string;
   gradiumSttDelayInFrames: number;
   gradiumVadHorizonSeconds: number;
@@ -38,6 +44,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     port,
     publicBaseUrl: env.KYLIAN_PUBLIC_BASE_URL ?? `http://localhost:${port}`,
     staticDir: env.KYLIAN_STATIC_DIR,
+    allowedOrigins: stringList(env.KYLIAN_ALLOWED_ORIGINS, ["http://localhost:5173", "http://127.0.0.1:5173"]),
     openaiApiKey: env.OPENAI_API_KEY,
     openaiModel: env.OPENAI_MODEL ?? "gpt-5.4-mini",
     executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),
@@ -55,11 +62,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     gradiumSttModel: env.GRADIUM_STT_MODEL ?? "default",
     gradiumTtsModel: env.GRADIUM_TTS_MODEL ?? "default",
     gradiumTtsVoice: env.GRADIUM_TTS_VOICE,
+    gradiumTtsSpeed: numberValue(optionalString(env.GRADIUM_TTS_SPEED), -1.0, "GRADIUM_TTS_SPEED", -4, 4),
+    gradiumTtsTemperature: numberValue(optionalString(env.GRADIUM_TTS_TEMPERATURE), 0.5, "GRADIUM_TTS_TEMPERATURE", 0, 1.4),
+    gradiumTtsVoiceSimilarity: numberValue(optionalString(env.GRADIUM_TTS_VOICE_SIMILARITY), 2.0, "GRADIUM_TTS_VOICE_SIMILARITY", 1, 4),
+    gradiumTtsRewriteRules: optionalString(env.GRADIUM_TTS_REWRITE_RULES),
+    gradiumTtsPronunciationId: optionalString(env.GRADIUM_TTS_PRONUNCIATION_ID),
     gradiumSttLanguage: env.GRADIUM_STT_LANGUAGE ?? "en",
-    gradiumSttDelayInFrames: integer(env.GRADIUM_STT_DELAY_IN_FRAMES, 16, "GRADIUM_STT_DELAY_IN_FRAMES", 0, 80),
-    gradiumVadHorizonSeconds: numberValue(env.GRADIUM_VAD_HORIZON_SECONDS, 2, "GRADIUM_VAD_HORIZON_SECONDS", 0),
+    gradiumSttDelayInFrames: integer(env.GRADIUM_STT_DELAY_IN_FRAMES, 8, "GRADIUM_STT_DELAY_IN_FRAMES", 0, 80),
+    gradiumVadHorizonSeconds: numberValue(env.GRADIUM_VAD_HORIZON_SECONDS, 1, "GRADIUM_VAD_HORIZON_SECONDS", 0),
     gradiumVadInactivityThreshold: numberValue(env.GRADIUM_VAD_INACTIVITY_THRESHOLD, 0.5, "GRADIUM_VAD_INACTIVITY_THRESHOLD", 0, 1),
-    gradiumVadConsecutiveSteps: integer(env.GRADIUM_VAD_CONSECUTIVE_STEPS, 3, "GRADIUM_VAD_CONSECUTIVE_STEPS", 1, 20),
+    gradiumVadConsecutiveSteps: integer(env.GRADIUM_VAD_CONSECUTIVE_STEPS, 2, "GRADIUM_VAD_CONSECUTIVE_STEPS", 1, 20),
     nemoclawIngressToken: env.NEMOCLAW_INGRESS_TOKEN,
     nemoclawComputerId: env.NEMOCLAW_COMPUTER_ID ?? env.KYLIAN_VOICE_COMPUTER_ID ?? "demo-computer",
   };
@@ -81,6 +93,14 @@ function validateConfig(config: ServerConfig): void {
   if (config.voiceProvider === "gradium" && !config.gradiumTtsVoice) throw new Error("GRADIUM_TTS_VOICE is required when KYLIAN_VOICE_PROVIDER=gradium");
 }
 
+function optionalString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+function stringList(value: string | undefined, fallback: string[]): string[] {
+  if (value === undefined || !value.trim()) return fallback;
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
 function integer(value: string | undefined, fallback: number, name: string, min: number, max: number): number {
   const parsed = value === undefined ? fallback : Number(value);
   if (!Number.isInteger(parsed) || parsed < min || parsed > max) throw new Error(`${name} must be an integer from ${min} to ${max}`);

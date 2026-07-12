@@ -9,7 +9,8 @@ import { SessionOrchestrationService } from "./orchestrator/sessionOrchestration
 import { RuntimeEventHub } from "./runtime/eventHub.js";
 import { PolicyStore } from "./runtime/policyStore.js";
 import { OpenAIRealtimeTranscriber, OpenAISpeechSynthesizer } from "./voice/openaiVoice.js";
-import { GradiumStreamingTranscriber, GradiumStreamingTts } from "./voice/gradiumVoice.js";
+import { GradiumStreamingTranscriber } from "./voice/gradiumVoice.js";
+import { GradiumTtsSession } from "./voice/gradiumTtsSession.js";
 import { VoiceRuntime } from "./voice/voiceRuntime.js";
 import { createTwilioMediaStreamServer } from "./twilio/mediaStreamServer.js";
 import { ComputerRegistry } from "./computer/registry.js";
@@ -36,7 +37,16 @@ const speech = config.voiceProvider === "gradium" && config.gradiumApiKey && con
         vadInactivityThreshold: config.gradiumVadInactivityThreshold,
         vadConsecutiveSteps: config.gradiumVadConsecutiveSteps,
       }),
-      synthesizer: new GradiumStreamingTts({ apiKey: config.gradiumApiKey, model: config.gradiumTtsModel, voiceId: config.gradiumTtsVoice }),
+      synthesizer: new GradiumTtsSession({
+        apiKey: config.gradiumApiKey,
+        model: config.gradiumTtsModel,
+        voiceId: config.gradiumTtsVoice,
+        speed: config.gradiumTtsSpeed,
+        temperature: config.gradiumTtsTemperature,
+        voiceSimilarity: config.gradiumTtsVoiceSimilarity,
+        rewriteRules: config.gradiumTtsRewriteRules,
+        pronunciationId: config.gradiumTtsPronunciationId,
+      }),
     }
   : config.openaiApiKey
     ? { recognizer: new OpenAIRealtimeTranscriber(config.openaiApiKey, config.voiceTranscriptionModel), synthesizer: new OpenAISpeechSynthesizer(new OpenAI({ apiKey: config.openaiApiKey }), config.voiceTtsModel, config.voiceTtsVoice) }
