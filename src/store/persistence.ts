@@ -52,7 +52,7 @@ export function load(): PersistedState | null {
       ),
       sessions: parsed.sessions ?? [],
       files: parsed.files ?? [],
-      preferences: { channel: "Phone", name: "", phone: "", ...parsed.preferences },
+      preferences: Object.assign({ channel: "Phone", name: "", phone: "" }, parsed.preferences),
       activeComputerId: parsed.activeComputerId ?? null,
     };
   } catch {
