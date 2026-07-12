@@ -1,5 +1,7 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import AppLayout from "@/layouts/AppLayout";
+import MarketingLayout from "@/layouts/MarketingLayout";
+import LandingPage from "@/pages/LandingPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import MonitoringPage from "@/pages/MonitoringPage";
 import SessionsPage from "@/pages/SessionsPage";
@@ -7,18 +9,12 @@ import SessionPage, { SessionRedirect } from "@/pages/SessionPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import TermsPage from "@/pages/TermsPage";
-import { useAppState } from "@/store/context";
-
-// Send first-time users to onboarding; returning (configured) users go straight
-// to the idle monitoring screen.
-function RootGate() {
-  const state = useAppState();
-  if (state.loading.sessions) return null;
-  return <Navigate to={state.preferences.configured ? "/monitor" : "/onboarding"} replace />;
-}
 
 export const router = createBrowserRouter([
-  { path: "/", element: <RootGate /> },
+  {
+    element: <MarketingLayout />,
+    children: [{ path: "/", element: <LandingPage /> }],
+  },
   { path: "/onboarding", element: <OnboardingPage /> },
   {
     element: <AppLayout />,

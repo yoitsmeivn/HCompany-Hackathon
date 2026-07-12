@@ -4,8 +4,8 @@
 // package.json/node_modules, separate from the web app in the parent
 // directory. It boots the parent app's existing Express API server
 // (server/index.ts, unmodified) as a child process, then opens a window on
-// /setup — the same screen served by `npm run dev:web` at
-// http://localhost:5173/setup.
+// / — the same landing screen served by `npm run dev:web` at
+// http://localhost:5173/.
 //
 // Dev mode: the parent app's source is read directly from ../ (server/,
 // shared/). The window points at the Vite dev server (hot reload).
@@ -82,8 +82,8 @@ function createWindow() {
   });
 
   const startUrl = isDev
-    ? process.env.ELECTRON_START_URL || "http://localhost:5173/setup"
-    : `http://localhost:${API_PORT}/setup`;
+    ? process.env.ELECTRON_START_URL || "http://localhost:5173/"
+    : `http://localhost:${API_PORT}/`;
 
   mainWindow.loadURL(startUrl);
   mainWindow.on("closed", () => {
