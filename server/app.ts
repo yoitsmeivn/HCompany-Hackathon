@@ -135,7 +135,10 @@ export function createApp(config: ServerConfig, events: RuntimeEventHub, session
     }
   });
   if (config.staticDir) {
-    const staticDir = config.staticDir;
+    // Resolve to an absolute path: res.sendFile throws on relative paths, which
+    // would 500 every deep-linked SPA route (e.g. /monitor) when KYLIAN_STATIC_DIR
+    // is relative.
+    const staticDir = path.resolve(config.staticDir);
     app.use(express.static(staticDir));
     app.get(/^(?!\/api).*/, (_request: express.Request, response: express.Response) =>
       response.sendFile(path.join(staticDir, "index.html")),
