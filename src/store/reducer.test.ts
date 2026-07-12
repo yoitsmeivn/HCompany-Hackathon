@@ -78,4 +78,22 @@ describe("reducer idempotency", () => {
     expect(again).toBe(resolved);
     expect(again.live[SESSION_ID].approval?.status).toBe("approved");
   });
+
+  it("stores the newest screen frame and drops stale/out-of-order frames", () => {
+    const state = apply([
+      { type: "LIVE_SESSION_INITIALIZED", sessionId: SESSION_ID },
+      { type: "SESSION_FRAME_UPDATED", sessionId: SESSION_ID, frame: { src: "data:image/jpeg;base64,one", seq: 1 } },
+      { type: "SESSION_FRAME_UPDATED", sessionId: SESSION_ID, frame: { src: "data:image/jpeg;base64,two", seq: 2 } },
+    ]);
+    expect(state.live[SESSION_ID].frame).toEqual({ src: "data:image/jpeg;base64,two", seq: 2 });
+
+    // A late frame with a lower seq must not replace the newer one.
+    const stale = reducer(state, {
+      type: "SESSION_FRAME_UPDATED",
+      sessionId: SESSION_ID,
+      frame: { src: "data:image/jpeg;base64,one", seq: 1 },
+    });
+    expect(stale).toBe(state);
+    expect(stale.live[SESSION_ID].frame?.seq).toBe(2);
+  });
 });

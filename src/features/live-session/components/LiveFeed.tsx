@@ -32,26 +32,44 @@ export default function LiveFeed({ live }: { live: LiveSessionData }) {
           background: "linear-gradient(155deg,#4a4740 0%,#403d37 45%,#33312c 100%)",
         }}
       >
-        {/* Placeholder until the companion streams a real screen (WebRTC later) */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <span
-            className={pulsing ? "k-pulse" : undefined}
+        {live.frame ? (
+          // Latest desktop screenshot (one per computer-use step). The <img>
+          // persists across updates, so the previous frame stays visible until
+          // the next one decodes. Future video providers swap this element only.
+          <img
+            src={live.frame.src}
+            alt="Live desktop"
             style={{
-              height: 9,
-              width: 9,
-              borderRadius: "50%",
-              background: live.connectionStatus === "failed" ? "#c9847a" : "#c9c4ba",
+              position: "absolute",
+              inset: 0,
+              height: "100%",
+              width: "100%",
+              objectFit: "contain",
+              background: "#1c1b19",
             }}
           />
-        </div>
+        ) : (
+          // Placeholder until the first screenshot arrives.
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              className={pulsing ? "k-pulse" : undefined}
+              style={{
+                height: 9,
+                width: 9,
+                borderRadius: "50%",
+                background: live.connectionStatus === "failed" ? "#c9847a" : "#c9c4ba",
+              }}
+            />
+          </div>
+        )}
 
         {/* HUD overlay — driven by session data */}
         <div

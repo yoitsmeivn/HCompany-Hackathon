@@ -205,6 +205,46 @@ test("the nemoclaw-desktop adapter reuses the contract over a remote HTTPS sandb
   assert.ok(!JSON.stringify(post.body).includes(TOKEN), "the token never appears in the task body");
 });
 
+test("with streamFrames on, an event carrying a frame emits a screen-frame runtime event", async () => {
+  const service = new FakeDesktopService();
+  service.events = [
+    { kind: "agent_started" },
+    { kind: "agent:observation_event", frame: { mediaType: "image/jpeg", dataBase64: "AAAA" } } as { kind: string },
+  ];
+  const events = new RuntimeEventHub();
+  const frames: RuntimeEvent[] = [];
+  events.subscribe("session-1", ({ event }) => { if (event.kind === "screen-frame") frames.push(event); });
+
+  const adapter = new HaiDesktopComputerTaskAdapter(
+    { baseUrl: "http://127.0.0.1:8790", token: TOKEN, taskTimeoutSeconds: 30, pollIntervalMs: 1, pollGraceMs: 200, streamFrames: true },
+    events,
+    service.fetch as typeof fetch,
+  );
+  const result = await adapter.run(REQUEST);
+
+  assert.equal(result.status, "completed");
+  assert.equal(frames.length, 1);
+  const frame = frames[0];
+  assert.equal(frame.kind === "screen-frame" && frame.mediaType, "image/jpeg");
+  assert.equal(frame.kind === "screen-frame" && frame.dataBase64, "AAAA");
+  assert.equal(frame.kind === "screen-frame" && frame.seq, 1);
+});
+
+test("without streamFrames, frames on events are ignored (default behavior)", async () => {
+  const service = new FakeDesktopService();
+  service.events = [
+    { kind: "agent_started" },
+    { kind: "agent:observation_event", frame: { mediaType: "image/jpeg", dataBase64: "AAAA" } } as { kind: string },
+  ];
+  const events = new RuntimeEventHub();
+  const frames: RuntimeEvent[] = [];
+  events.subscribe("session-1", ({ event }) => { if (event.kind === "screen-frame") frames.push(event); });
+
+  await makeAdapter(service, events).run(REQUEST);
+
+  assert.equal(frames.length, 0);
+});
+
 test("steer and pause are rejected loudly", async () => {
   const adapter = makeAdapter(new FakeDesktopService());
   await assert.rejects(() => adapter.steer("t", "x"), /cannot be steered/);

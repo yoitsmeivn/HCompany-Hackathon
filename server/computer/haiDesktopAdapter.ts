@@ -24,6 +24,12 @@ export interface HaiDesktopAdapterOptions {
   pollIntervalMs?: number;
   /** Extra local slack past the task budget before the adapter gives up. */
   pollGraceMs?: number;
+  /**
+   * Opt-in: forward desktop screenshots (already present on polled events when
+   * KYLIAN_LIVE_VIEW is on) as `screen-frame` runtime events. Off by default —
+   * when off the adapter never reads or emits a frame.
+   */
+  streamFrames?: boolean;
 }
 
 type FetchLike = typeof fetch;
@@ -42,6 +48,13 @@ const TASK_PREFIX: Record<LocalDesktopProvider, string> = {
   "holo-desktop": "holo",
   "nemoclaw-desktop": "nemo",
 };
+
+// A safe lifecycle event from the desktop service. `frame` is present only when
+// the operator opted into live view (KYLIAN_LIVE_VIEW); it is absent otherwise.
+interface PolledEvent {
+  kind: string;
+  frame?: { mediaType: string; dataBase64: string };
+}
 
 const SUMMARY_MAX = 600;
 const POLL_INTERVAL_MS = 1_500;
@@ -66,6 +79,7 @@ export class LocalDesktopServiceAdapter implements ComputerTaskAdapter {
     const pollInterval = this.options.pollIntervalMs ?? POLL_INTERVAL_MS;
     let eventsFrom = 0;
     let steps = 0;
+    let frameSeq = 0;
     let started = false;
     let pollFailures = 0;
 
@@ -74,7 +88,7 @@ export class LocalDesktopServiceAdapter implements ComputerTaskAdapter {
       let record: ServiceTaskRecord;
       try {
         record = await this.getJson<ServiceTaskRecord>(`/tasks/${taskId}`);
-        const page = await this.getJson<{ events: Array<{ kind: string }>; next: number }>(
+        const page = await this.getJson<{ events: PolledEvent[]; next: number }>(
           `/tasks/${taskId}/events?from=${eventsFrom}`,
         );
         eventsFrom = page.next;
@@ -86,6 +100,22 @@ export class LocalDesktopServiceAdapter implements ComputerTaskAdapter {
         if (newSteps > 0) {
           steps += newSteps;
           this.emit(request.sessionId, `Working on the desktop (step ${steps})`, "current");
+        }
+        // Opt-in live view: a frame is only present on events when the service
+        // has KYLIAN_LIVE_VIEW on; otherwise this loop never runs.
+        if (this.options.streamFrames) {
+          for (const event of page.events) {
+            if (event.frame) {
+              frameSeq += 1;
+              this.events?.emit({
+                kind: "screen-frame",
+                sessionId: request.sessionId,
+                mediaType: event.frame.mediaType,
+                dataBase64: event.frame.dataBase64,
+                seq: frameSeq,
+              });
+            }
+          }
         }
         pollFailures = 0;
       } catch {

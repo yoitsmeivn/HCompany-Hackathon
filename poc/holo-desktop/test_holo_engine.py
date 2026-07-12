@@ -8,6 +8,7 @@ Run: poc/holo-desktop/.venv/bin/python -m unittest discover -s poc/holo-desktop
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 import unittest
@@ -175,6 +176,52 @@ class ServiceIntegrationTests(unittest.TestCase):
         self.assertIn("agent_event:act_event", kinds)
         for event in events:
             self.assertEqual(sorted(event.keys()), ["at", "index", "kind"])
+
+
+class LiveViewEngineTests(unittest.TestCase):
+    """With KYLIAN_LIVE_VIEW=1 the engine mines the screenshot from the runtime
+    event and attaches it to the projected event; off by default it does not."""
+
+    def setUp(self):
+        holo_engine._client = FakeClient()
+        self._original = os.environ.get("KYLIAN_LIVE_VIEW")
+
+    def tearDown(self):
+        holo_engine._client = None
+        if self._original is None:
+            os.environ.pop("KYLIAN_LIVE_VIEW", None)
+        else:
+            os.environ["KYLIAN_LIVE_VIEW"] = self._original
+
+    def _image_runner(self):
+        async def runner(client, session, task, *, max_steps, max_time_s, on_event):
+            session.session_id = "holo-s-1"
+            await on_event(
+                SimpleNamespace(
+                    type="agent_event",
+                    data={"kind": "observation", "image": {"type": "base64", "media_type": "image/jpeg", "source": "IMG"}},
+                )
+            )
+            return outcome()
+
+        return runner
+
+    def test_attaches_frame_when_live_view_on(self):
+        os.environ["KYLIAN_LIVE_VIEW"] = "1"
+        handle = HoloSessionHandle("task", 120, turn_runner=self._image_runner())
+        events = list(handle.stream())
+        handle.wait_for_completion()
+        self.assertEqual(len(events), 1)
+        self.assertIsNotNone(events[0].frame)
+        self.assertEqual(events[0].frame.dataBase64, "IMG")
+
+    def test_no_frame_when_live_view_off(self):
+        os.environ.pop("KYLIAN_LIVE_VIEW", None)
+        handle = HoloSessionHandle("task", 120, turn_runner=self._image_runner())
+        events = list(handle.stream())
+        handle.wait_for_completion()
+        self.assertEqual(len(events), 1)
+        self.assertIsNone(events[0].frame)
 
 
 if __name__ == "__main__":

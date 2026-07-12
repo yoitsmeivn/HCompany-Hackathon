@@ -170,6 +170,17 @@ export function reducer(state: AppState, action: AppAction): AppState {
         connectionStatus: action.status,
       }));
 
+    case "SESSION_FRAME_UPDATED":
+      // Newest-frame-wins; drop stale/out-of-order frames. The previous image
+      // stays on screen until a newer one arrives.
+      if (state.live[action.sessionId] && (state.live[action.sessionId].frame?.seq ?? -1) > action.frame.seq) {
+        return state;
+      }
+      return updateLive(state, action.sessionId, (live) => ({
+        ...live,
+        frame: action.frame,
+      }));
+
     case "LIVE_SESSION_INITIALIZED":
       return {
         ...state,

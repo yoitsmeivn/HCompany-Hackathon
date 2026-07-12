@@ -25,13 +25,24 @@ class TaskRequest(BaseModel):
     timeoutSeconds: int = Field(default=120, ge=10, le=900)
 
 
+class TaskFrame(BaseModel):
+    """A single desktop screenshot observed during a task. Only present when the
+    live-view flag (KYLIAN_LIVE_VIEW=1) is on; omitted from the wire otherwise so
+    the default event contract (kind only) is unchanged."""
+
+    mediaType: str = Field(min_length=1, max_length=64)
+    dataBase64: str = Field(min_length=1)
+
+
 class TaskEvent(BaseModel):
-    """A safe progress event: lifecycle kind only — never model output,
-    screenshots, or chain-of-thought."""
+    """A safe progress event: lifecycle kind only — never model output or
+    chain-of-thought. Carries an optional desktop screenshot only when the
+    operator has opted into live view (KYLIAN_LIVE_VIEW=1)."""
 
     index: int
     at: str
     kind: str
+    frame: Optional[TaskFrame] = None
 
 
 class TaskRecord(BaseModel):

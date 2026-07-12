@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import LiveMonitor from "./LiveMonitor";
 
 function SessionPreview() {
   return (
@@ -392,7 +393,7 @@ export default function Hero() {
             </div>
           </div>
 
-          <SessionPreview />
+          <LiveMonitor fallback={<SessionPreview />} />
         </div>
       </div>
     </section>

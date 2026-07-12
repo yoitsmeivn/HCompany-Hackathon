@@ -8,6 +8,10 @@ export type RuntimeEvent =
   | { kind: "approval-requested"; sessionId: string; summary: string; fileName: string }
   | { kind: "approval-resolved"; sessionId: string; approved: boolean; deliveryUrl?: string }
   | { kind: "live-connection"; sessionId: string; status: "connecting" | "connected" | "disconnected" | "failed" }
+  // One desktop screenshot observed during a computer-use step. Opt-in only
+  // (KYLIAN_LIVE_VIEW): the executor never emits this unless the operator asked
+  // for live view. `seq` is monotonic per run so the client can drop stale frames.
+  | { kind: "screen-frame"; sessionId: string; mediaType: string; dataBase64: string; seq: number }
   | { kind: "session-state"; sessionId: string; state: "active" | "complete" | "waiting" | "paused" | "failed"; status: string; detail?: string }
   | { kind: "file-delivered"; file: RuntimeFile };
 

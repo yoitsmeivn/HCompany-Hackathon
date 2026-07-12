@@ -96,6 +96,16 @@ export function applyRuntimeEvent(dispatch: Dispatch<AppAction>, envelope: Runti
       });
       return;
 
+    case "screen-frame":
+      // One desktop screenshot per computer-use step (opt-in live view). Rendered
+      // as an <img> in LiveFeed; a future video provider would replace the source.
+      dispatch({
+        type: "SESSION_FRAME_UPDATED",
+        sessionId: event.sessionId,
+        frame: { src: `data:${event.mediaType};base64,${event.dataBase64}`, seq: event.seq },
+      });
+      return;
+
     case "session-state":
       dispatch({
         type: "SESSION_UPDATED",

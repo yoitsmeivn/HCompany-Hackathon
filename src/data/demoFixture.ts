@@ -122,6 +122,7 @@ export function buildDemoFixture(now: number): DemoFixture {
     live: {
       "demo-session-1": {
         connectionStatus: "connected",
+        frame: null,
         selectedCandidateId: "demo-candidate-1",
         messages: [
           {

@@ -33,6 +33,7 @@ export function emptyLiveSession(): LiveSessionData {
     candidates: [],
     approval: null,
     feed: null,
+    frame: null,
     connectionStatus: "connecting",
     selectedCandidateId: null,
   };

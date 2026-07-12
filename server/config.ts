@@ -32,6 +32,9 @@ export interface ServerConfig {
   // remote (not loopback) and must be TLS unless it is a loopback dev endpoint.
   nemoclawDesktopUrl: string;
   nemoclawDesktopTaskTimeoutSeconds: number;
+  // Opt-in: forward Holo desktop screenshots to the live monitor. Default off;
+  // when off no screenshot ever leaves the executor and APIs are unchanged.
+  liveView: boolean;
   executorMode: ExecutorMode;
   voiceProvider: VoiceProvider;
   twilioAccountSid?: string;
@@ -84,6 +87,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     holoTaskTimeoutSeconds: integer(env.KYLIAN_HOLO_TASK_TIMEOUT_S, 240, "KYLIAN_HOLO_TASK_TIMEOUT_S", 10, 900),
     nemoclawDesktopUrl: env.KYLIAN_NEMOCLAW_DESKTOP_URL ?? "http://127.0.0.1:8792",
     nemoclawDesktopTaskTimeoutSeconds: integer(env.KYLIAN_NEMOCLAW_DESKTOP_TASK_TIMEOUT_S, 240, "KYLIAN_NEMOCLAW_DESKTOP_TASK_TIMEOUT_S", 10, 900),
+    liveView: booleanValue(env.KYLIAN_LIVE_VIEW, false, "KYLIAN_LIVE_VIEW"),
     executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "hai-desktop", "holo-desktop", "nemoclaw-desktop", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),
     voiceProvider: enumValue(env.KYLIAN_VOICE_PROVIDER, ["gradium", "openai"] as const, gradiumConfigured ? "gradium" : "openai", "KYLIAN_VOICE_PROVIDER"),
     twilioAccountSid: env.TWILIO_ACCOUNT_SID,

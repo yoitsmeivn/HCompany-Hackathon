@@ -6,14 +6,17 @@ Run: poc/hai-desktop/.venv/bin/python -m unittest discover -s poc/hai-desktop
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 import unittest
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import Any, Optional
 
 from fastapi.testclient import TestClient
 
+import desktop_agent
 from desktop_service import create_app
 from schemas import map_h_status
 
@@ -233,6 +236,85 @@ class EventTests(unittest.TestCase):
         page = client.get("/tasks/task-1/events", headers=AUTH).json()
         for blob in (str(record), str(page)):
             self.assertNotIn(TOKEN, blob)
+
+
+class ExtractFrameTests(unittest.TestCase):
+    """extract_frame is shape-agnostic: it handles event.data as a dict (holo)
+    and as an object (hai), and returns None on anything unrecognized."""
+
+    def test_extracts_from_dict_event(self):
+        event = SimpleNamespace(
+            data={"kind": "observation", "image": {"type": "base64", "media_type": "image/png", "source": "ZZ"}}
+        )
+        frame = desktop_agent.extract_frame(event)
+        self.assertIsNotNone(frame)
+        self.assertEqual(frame.mediaType, "image/png")
+        self.assertEqual(frame.dataBase64, "ZZ")
+
+    def test_extracts_from_object_event(self):
+        image = SimpleNamespace(type="base64", media_type="image/jpeg", source="QQ")
+        event = SimpleNamespace(data=SimpleNamespace(kind="observation_event", screenshot=image))
+        frame = desktop_agent.extract_frame(event)
+        self.assertIsNotNone(frame)
+        self.assertEqual(frame.dataBase64, "QQ")
+
+    def test_extracts_from_data_url(self):
+        event = SimpleNamespace(data={"kind": "obs", "screenshot": "data:image/jpeg;base64,DDDD"})
+        frame = desktop_agent.extract_frame(event)
+        self.assertIsNotNone(frame)
+        self.assertEqual(frame.dataBase64, "DDDD")
+
+    def test_unknown_shape_returns_none(self):
+        self.assertIsNone(desktop_agent.extract_frame(SimpleNamespace(data={"kind": "act_event"})))
+
+
+class LiveViewTests(unittest.TestCase):
+    """With KYLIAN_LIVE_VIEW=1 the newest event carries a screenshot; older
+    frames are dropped and frameless events keep the exact 3-key shape."""
+
+    def setUp(self):
+        self._original = os.environ.get("KYLIAN_LIVE_VIEW")
+        os.environ["KYLIAN_LIVE_VIEW"] = "1"
+
+    def tearDown(self):
+        if self._original is None:
+            os.environ.pop("KYLIAN_LIVE_VIEW", None)
+        else:
+            os.environ["KYLIAN_LIVE_VIEW"] = self._original
+
+    def _frame_starter(self):
+        class ImgEvent:
+            def __init__(self, b64: str):
+                self.data = {"kind": "observation_event", "image": {"type": "base64", "media_type": "image/jpeg", "source": b64}}
+
+        class FrameSession:
+            id = "h-session-frames"
+
+            def stream(self):
+                yield ImgEvent("AAAA")
+                yield ImgEvent("BBBB")
+
+            def wait_for_completion(self):
+                return FakeResult()
+
+            def cancel(self):
+                pass
+
+        return lambda instruction, max_time_s: FrameSession()
+
+    def test_only_the_newest_frame_survives_and_shape_stays_exact(self):
+        client = TestClient(create_app(session_starter=self._frame_starter(), token=TOKEN))
+        post_task(client)
+        wait_for_terminal(client, "task-1")
+        events = client.get("/tasks/task-1/events", headers=AUTH).json()["events"]
+
+        framed = [event for event in events if "frame" in event]
+        self.assertEqual(len(framed), 1, "only the latest screenshot is retained")
+        self.assertEqual(framed[0]["frame"], {"mediaType": "image/jpeg", "dataBase64": "BBBB"})
+        self.assertEqual(sorted(framed[0].keys()), ["at", "frame", "index", "kind"])
+        for event in events:
+            if "frame" not in event:
+                self.assertEqual(sorted(event.keys()), ["at", "index", "kind"])
 
 
 class MappingTests(unittest.TestCase):

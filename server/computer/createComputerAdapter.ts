@@ -31,6 +31,7 @@ export function createComputerAdapter(config: ServerConfig, events?: RuntimeEven
           baseUrl: config.desktopServiceUrl.replace(/\/$/, ""),
           token: config.desktopServiceToken ?? "",
           taskTimeoutSeconds: config.desktopTaskTimeoutSeconds,
+          streamFrames: config.liveView,
         },
         events,
       );
@@ -40,6 +41,7 @@ export function createComputerAdapter(config: ServerConfig, events?: RuntimeEven
           baseUrl: config.holoServiceUrl.replace(/\/$/, ""),
           token: config.desktopServiceToken ?? "",
           taskTimeoutSeconds: config.holoTaskTimeoutSeconds,
+          streamFrames: config.liveView,
         },
         events,
       );
@@ -50,6 +52,7 @@ export function createComputerAdapter(config: ServerConfig, events?: RuntimeEven
           baseUrl: config.nemoclawDesktopUrl.replace(/\/$/, ""),
           token: config.desktopServiceToken ?? "",
           taskTimeoutSeconds: config.nemoclawDesktopTaskTimeoutSeconds,
+          streamFrames: config.liveView,
         },
         events,
       );

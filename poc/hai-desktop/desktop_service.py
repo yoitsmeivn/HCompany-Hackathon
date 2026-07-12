@@ -31,6 +31,7 @@ from schemas import (
     TERMINAL_STATUSES,
     TaskEvent,
     TaskEventsPage,
+    TaskFrame,
     TaskRecord,
     TaskRequest,
     map_h_status,
@@ -51,12 +52,18 @@ class TaskState:
     timed_out: bool = False
     lock: threading.Lock = field(default_factory=threading.Lock)
 
-    def add_event(self, kind: str) -> None:
+    def add_event(self, kind: str, frame: Optional[TaskFrame] = None) -> None:
         with self.lock:
             if len(self.events) >= MAX_EVENTS_PER_TASK:
                 return
+            if frame is not None:
+                # Keep only the newest screenshot in memory and on the wire; the
+                # monitor only ever renders the latest desktop state.
+                for event in self.events:
+                    if event.frame is not None:
+                        event.frame = None
             self.events.append(
-                TaskEvent(index=len(self.events), at=datetime.now(timezone.utc).isoformat(), kind=kind)
+                TaskEvent(index=len(self.events), at=datetime.now(timezone.utc).isoformat(), kind=kind, frame=frame)
             )
 
     def is_terminal(self) -> bool:
@@ -123,7 +130,13 @@ def create_app(
             first_event = True
             for event in session.stream():
                 # Engines may pre-project a safe kind (holo); otherwise derive it.
-                state.add_event(getattr(event, "safe_kind", None) or desktop_agent.safe_event_kind(event))
+                kind = getattr(event, "safe_kind", None) or desktop_agent.safe_event_kind(event)
+                # Opt-in live view: holo pre-projects the frame onto the event;
+                # hai passes the raw SDK event here to mine. Off by default.
+                frame = getattr(event, "frame", None)
+                if frame is None and desktop_agent.live_view_enabled():
+                    frame = desktop_agent.extract_frame(event)
+                state.add_event(kind, frame)
                 if first_event:
                     first_event = False
                     mark("first_event")
@@ -199,7 +212,9 @@ def create_app(
             state.add_event("cancel_requested")
         return state.record
 
-    @app.get("/tasks/{task_id}/events", dependencies=[Depends(require_auth)])
+    # exclude_none keeps the optional `frame` off the wire when absent, so the
+    # default event contract stays exactly {index, at, kind}.
+    @app.get("/tasks/{task_id}/events", dependencies=[Depends(require_auth)], response_model_exclude_none=True)
     def get_events(task_id: str, from_index: int = Query(default=0, alias="from", ge=0)) -> TaskEventsPage:
         state = get_state(task_id)
         with state.lock:

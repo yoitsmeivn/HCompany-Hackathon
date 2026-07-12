@@ -40,3 +40,42 @@ test("replays nothing after the last id but still delivers live events", () => {
   const live = hub.emit({ kind: "agent-message", sessionId: "s1", text: "four" });
   assert.deepEqual(received.map((e) => e.id), [live.id]);
 });
+
+test("screen-frame envelopes are kept out of the replay history", () => {
+  const hub = new RuntimeEventHub();
+  emitThree(hub);
+  for (let seq = 1; seq <= 3; seq += 1) {
+    hub.emit({ kind: "screen-frame", sessionId: "s1", mediaType: "image/jpeg", dataBase64: `frame-${seq}`, seq });
+  }
+
+  const received: RuntimeEventEnvelope[] = [];
+  hub.subscribe("s1", (envelope) => received.push(envelope), true);
+
+  const frames = received.filter((e) => e.event.kind === "screen-frame");
+  // Only the newest frame is replayed — not a history of every screenshot.
+  assert.equal(frames.length, 1);
+  assert.equal(frames[0].event.kind === "screen-frame" && frames[0].event.dataBase64, "frame-3");
+  // The three agent-messages still replay in full.
+  assert.equal(received.filter((e) => e.event.kind === "agent-message").length, 3);
+});
+
+test("replays the latest frame after buffered events on subscribe", () => {
+  const hub = new RuntimeEventHub();
+  hub.emit({ kind: "agent-message", sessionId: "s1", text: "hi" });
+  hub.emit({ kind: "screen-frame", sessionId: "s1", mediaType: "image/jpeg", dataBase64: "latest", seq: 1 });
+
+  const received: RuntimeEventEnvelope[] = [];
+  hub.subscribe("s1", (envelope) => received.push(envelope), true);
+
+  assert.deepEqual(received.map((e) => e.event.kind), ["agent-message", "screen-frame"]);
+});
+
+test("does not replay any frame when none was emitted", () => {
+  const hub = new RuntimeEventHub();
+  hub.emit({ kind: "agent-message", sessionId: "s1", text: "hi" });
+
+  const received: RuntimeEventEnvelope[] = [];
+  hub.subscribe("s1", (envelope) => received.push(envelope), true);
+
+  assert.ok(!received.some((e) => e.event.kind === "screen-frame"));
+});

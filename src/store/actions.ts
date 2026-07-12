@@ -7,6 +7,7 @@ import type {
   ApprovalRequest,
   CandidateFile,
   LiveConnectionStatus,
+  LiveFrame,
   Message,
 } from "@/features/live-session/types";
 import type { DemoFixture } from "@/data/demoFixture";
@@ -36,6 +37,7 @@ export type AppAction =
       deliveryUrl?: string;
     }
   | { type: "LIVE_CONNECTION_CHANGED"; sessionId: ID; status: LiveConnectionStatus }
+  | { type: "SESSION_FRAME_UPDATED"; sessionId: ID; frame: LiveFrame }
   | { type: "LIVE_SESSION_INITIALIZED"; sessionId: ID }
   | { type: "FILE_REGISTERED"; file: FileItem }
   | { type: "STATE_IMPORTED"; fixture: DemoFixture }
@@ -120,6 +122,12 @@ export const liveConnectionChanged = (
   sessionId: ID,
   status: LiveConnectionStatus,
 ): AppAction => ({ type: "LIVE_CONNECTION_CHANGED", sessionId, status });
+
+export const sessionFrameUpdated = (sessionId: ID, frame: LiveFrame): AppAction => ({
+  type: "SESSION_FRAME_UPDATED",
+  sessionId,
+  frame,
+});
 
 export const liveSessionInitialized = (sessionId: ID): AppAction => ({
   type: "LIVE_SESSION_INITIALIZED",

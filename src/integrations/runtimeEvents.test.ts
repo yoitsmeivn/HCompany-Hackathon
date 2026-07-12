@@ -56,4 +56,19 @@ describe("applyRuntimeEvent", () => {
 
     expect(dispatch).not.toHaveBeenCalled();
   });
+
+  it("maps screen-frame to a SESSION_FRAME_UPDATED with a data URL and seq", () => {
+    const dispatch = vi.fn();
+    applyRuntimeEvent(dispatch, {
+      id: "frm-1",
+      at: AT,
+      event: { kind: "screen-frame", sessionId: "s1", mediaType: "image/jpeg", dataBase64: "AAAA", seq: 7 },
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SESSION_FRAME_UPDATED",
+      sessionId: "s1",
+      frame: { src: "data:image/jpeg;base64,AAAA", seq: 7 },
+    });
+  });
 });

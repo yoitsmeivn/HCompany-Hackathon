@@ -25,6 +25,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Optional
 
+import desktop_agent  # shared env loader + opt-in screenshot extractor (KYLIAN_LIVE_VIEW)
+
 HOLO_DIR = Path(__file__).resolve().parent
 RUNS_DIR = HOLO_DIR / "runs"
 
@@ -141,7 +143,10 @@ class HoloSessionHandle:
         self._session = Session()
 
         async def on_event(event: Any) -> None:
-            self._events.put(SimpleNamespace(safe_kind=_safe_kind(event)))
+            # Opt-in live view: mine the base64 screenshot from the runtime event
+            # before it is discarded; off by default (no frame ever leaves here).
+            frame = desktop_agent.extract_frame(event) if desktop_agent.live_view_enabled() else None
+            self._events.put(SimpleNamespace(safe_kind=_safe_kind(event), frame=frame))
 
         try:
             return await self._turn_runner(
