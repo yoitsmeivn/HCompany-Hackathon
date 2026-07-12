@@ -327,6 +327,58 @@ export default function SetupPage() {
                 value={channel}
                 onChange={(value) => dispatch(preferencesChanged({ channel: value }))}
               />
+              {channel === "Phone" && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    border: "1px solid #e7e3dd",
+                    borderRadius: 8,
+                    background: "#faf9f7",
+                    padding: "12px 14px",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={state.preferences.smsConsent}
+                      onChange={(e) =>
+                        dispatch(preferencesChanged({ smsConsent: e.target.checked }))
+                      }
+                      style={{
+                        marginTop: 2,
+                        width: 14,
+                        height: 14,
+                        flexShrink: 0,
+                        accentColor: "#1c1b19",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span style={{ fontSize: 12.5, color: "#3a382f", lineHeight: 1.6 }}>
+                      I agree to receive conversational and task-related SMS messages from
+                      Kylian. Message frequency varies. Message and data rates may apply. Reply
+                      STOP to opt out or HELP for assistance.
+                    </span>
+                  </label>
+                  <p style={{ margin: "8px 0 0", fontSize: 11.5, color: "#9a958c" }}>
+                    Optional — not required to use Kylian. See our{" "}
+                    <Link to="/privacy" style={{ color: "#6a665f", textDecoration: "underline" }}>
+                      Privacy Policy
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/terms" style={{ color: "#6a665f", textDecoration: "underline" }}>
+                      Terms and Conditions
+                    </Link>
+                    .
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Toggles */}

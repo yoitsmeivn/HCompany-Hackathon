@@ -9,6 +9,8 @@ import FilesPage from "@/pages/FilesPage";
 import NewSessionPage from "@/pages/NewSessionPage";
 import SessionPage, { SessionRedirect } from "@/pages/SessionPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import TermsPage from "@/pages/TermsPage";
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +19,8 @@ export const router = createBrowserRouter([
       { path: "/", element: <LandingPage /> },
       { path: "/setup", element: <SetupPage /> },
       { path: "/demo", element: <Navigate to="/setup" replace /> },
+      { path: "/privacy", element: <PrivacyPage /> },
+      { path: "/terms", element: <TermsPage /> },
     ],
   },
   {

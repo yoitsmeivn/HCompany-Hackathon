@@ -21,7 +21,7 @@ export interface PersistedState {
   sessions: Session[];
   files: FileItem[];
   activeComputerId: ID | null;
-  preferences: { channel: string; name: string; phone: string };
+  preferences: { channel: string; name: string; phone: string; smsConsent: boolean };
 }
 
 function project(state: AppState): PersistedState {
@@ -52,7 +52,10 @@ export function load(): PersistedState | null {
       ),
       sessions: parsed.sessions ?? [],
       files: parsed.files ?? [],
-      preferences: Object.assign({ channel: "Phone", name: "", phone: "" }, parsed.preferences),
+      preferences: Object.assign(
+        { channel: "Phone", name: "", phone: "", smsConsent: false },
+        parsed.preferences,
+      ),
       activeComputerId: parsed.activeComputerId ?? null,
     };
   } catch {
