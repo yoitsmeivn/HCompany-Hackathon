@@ -19,7 +19,7 @@ import { ComputerRegistry } from "./computer/registry.js";
 
 const config = loadConfig();
 const events = new RuntimeEventHub();
-const computer = createComputerAdapter(config);
+const computer = createComputerAdapter(config, events);
 const computers = new ComputerRegistry();
 // Register the demo/voice computer id so voice and simulate-call can reach it.
 // In mock mode this is the fixed "demo-computer"; in h-company mode it is the

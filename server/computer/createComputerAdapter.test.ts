@@ -15,6 +15,33 @@ test("selects the H Company executor when KYLIAN_EXECUTOR_MODE=h-company", () =>
   assert.equal(adapter.provider, "h-company");
 });
 
+test("selects the hai-desktop executor when mode and token are configured", () => {
+  const adapter = createComputerAdapter(
+    loadConfig({ ...base, KYLIAN_EXECUTOR_MODE: "hai-desktop", KYLIAN_DESKTOP_SERVICE_TOKEN: "secret" }),
+  );
+  assert.equal(adapter.provider, "hai-desktop");
+});
+
+test("hai-desktop mode requires the service token", () => {
+  assert.throws(
+    () => loadConfig({ ...base, KYLIAN_EXECUTOR_MODE: "hai-desktop" }),
+    /KYLIAN_DESKTOP_SERVICE_TOKEN is required/,
+  );
+});
+
+test("hai-desktop mode rejects non-loopback service URLs", () => {
+  assert.throws(
+    () =>
+      loadConfig({
+        ...base,
+        KYLIAN_EXECUTOR_MODE: "hai-desktop",
+        KYLIAN_DESKTOP_SERVICE_TOKEN: "secret",
+        KYLIAN_DESKTOP_SERVICE_URL: "https://example.com:8790",
+      }),
+    /must stay on loopback/,
+  );
+});
+
 test("local-companion is not yet implemented and fails loudly", () => {
   assert.throws(
     () => createComputerAdapter(loadConfig({ ...base, KYLIAN_EXECUTOR_MODE: "local-companion" })),

@@ -80,6 +80,10 @@ test("computer inspection requests invoke the tool with a neutral ack and only v
     assert.ok(!speech.some((text) => text.includes("I opened it")), "unverified pre-tool text is never spoken");
     assert.equal(speech.join(" ").includes("Found it."), true, "the verified result is spoken after the tool");
     assert.equal((client.calls[1] as { previous_response_id?: string }).previous_response_id, "resp-1");
+    const continuation = (client.calls[1] as { input?: Array<{ type?: string; output?: string }> }).input ?? [];
+    const toolOutput = continuation.find((item) => item.type === "function_call_output");
+    assert.ok(toolOutput, "the executor result is returned via function_call_output");
+    assert.match(toolOutput.output ?? "", /"summary":"Done"/, "OpenAI receives the executor's final answer");
     assert.equal(result.responseId, "resp-2");
     assert.equal(result.spoken, true);
   }

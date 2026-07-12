@@ -15,7 +15,7 @@ export interface ComputerTaskResult {
 }
 
 export interface ComputerTaskAdapter {
-  readonly provider: "mock" | "h-company" | "local-companion";
+  readonly provider: "mock" | "h-company" | "hai-desktop" | "local-companion";
   run(request: ComputerTaskRequest): Promise<ComputerTaskResult>;
   steer(taskId: string, instruction: string): Promise<void>;
   pause(taskId: string): Promise<void>;
