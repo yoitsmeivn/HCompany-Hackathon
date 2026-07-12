@@ -20,6 +20,7 @@ import { WhatsAppSender } from "./twilio/whatsappSender.js";
 import { ArtifactStore } from "./artifacts/artifactStore.js";
 import { ArtifactPublisher } from "./artifacts/artifactPublisher.js";
 import { ZipService } from "./artifacts/zipService.js";
+import { FileSearch } from "./artifacts/fileSearch.js";
 
 const config = loadConfig();
 const events = new RuntimeEventHub();
@@ -38,9 +39,10 @@ const whatsapp = config.kylianWhatsappEnabled ? new WhatsAppSender(config) : und
 const artifacts = new ArtifactStore(config.kylianArtifactAllowedRoots, config.kylianArtifactMaxBytes);
 const artifactPublisher = new ArtifactPublisher(artifacts, config.publicBaseUrl);
 const zipService = new ZipService(artifacts, config.kylianArtifactMaxBytes);
+const fileSearch = new FileSearch(config.kylianArtifactAllowedRoots, artifacts);
 // Voice brain: OpenAI Responses (tuned for low-latency streaming) or mock.
 const voiceOrchestrator: Orchestrator = config.openaiApiKey
-  ? new OpenAIOrchestrator(new OpenAI({ apiKey: config.openaiApiKey }), config.openaiModel, computer, events, whatsapp, { artifacts, publisher: artifactPublisher, zip: zipService }, config.kylianOwnerEmail)
+  ? new OpenAIOrchestrator(new OpenAI({ apiKey: config.openaiApiKey }), config.openaiModel, computer, events, whatsapp, { artifacts, publisher: artifactPublisher, zip: zipService, fileSearch }, config.kylianOwnerEmail)
   : new MockOrchestrator(computer, events);
 // Text brain (WhatsApp/web): H Company Holo via its OpenAI-compatible Chat
 // Completions API when HAI_API_KEY is set; otherwise reuse the voice brain.

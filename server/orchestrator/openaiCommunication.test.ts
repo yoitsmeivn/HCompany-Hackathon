@@ -9,6 +9,7 @@ import { RuntimeEventHub } from "../runtime/eventHub.js";
 import { ArtifactStore } from "../artifacts/artifactStore.js";
 import { ArtifactPublisher } from "../artifacts/artifactPublisher.js";
 import { ZipService } from "../artifacts/zipService.js";
+import { FileSearch } from "../artifacts/fileSearch.js";
 import { OpenAIOrchestrator } from "./openaiOrchestrator.js";
 
 const BASE = "https://tunnel.example.com";
@@ -89,7 +90,8 @@ async function comms() {
   const artifacts = new ArtifactStore([root], 15_000_000);
   const publisher = new ArtifactPublisher(artifacts, BASE);
   const zip = new ZipService(artifacts);
-  return { artifacts, publisher, zip, file, deps: { artifacts, publisher, zip } };
+  const fileSearch = new FileSearch([root], artifacts);
+  return { artifacts, publisher, zip, fileSearch, file, root, deps: { artifacts, publisher, zip, fileSearch } };
 }
 
 function input(text: string) {
@@ -102,6 +104,24 @@ function draftThenReply(call: unknown, reply: string): unknown[][] {
     [...textDeltas(reply), completed("resp-2")],
   ];
 }
+
+test("find_local_files is declared and returns registered artifacts (no paths)", async () => {
+  const { deps } = await comms(); // creates IvanResume.pdf under the allowed root
+  const client = new ResettableOpenAI();
+  const call = toolCall("c1", "find_local_files", { query: "resume", roots: null, extensions: null, sortBy: null, limit: null });
+  client.script(draftThenReply(call, "Found it."));
+  const orchestrator = new OpenAIOrchestrator(client as unknown as OpenAI, "gpt", new ScriptedComputer(), new RuntimeEventHub(), new FakeWhatsApp(), deps);
+  await orchestrator.run(input("find my resume"));
+
+  const declared = (client.calls[0] as { tools: Array<{ name: string }> }).tools.map((t) => t.name);
+  assert.ok(declared.includes("find_local_files"));
+  const payload = client.toolOutput();
+  const files = payload.files as Array<{ artifactId: string; displayName: string }>;
+  assert.equal(files.length, 1);
+  assert.equal(files[0].displayName, "IvanResume.pdf");
+  assert.ok(files[0].artifactId.startsWith("art-"));
+  assert.ok(!JSON.stringify(payload).includes("/Users") && !JSON.stringify(payload).includes(os.tmpdir()), "no local path leaks to the model");
+});
 
 test("computer_task exposes located files as artifacts, never raw paths", async () => {
   const { file, deps } = await comms();
@@ -176,7 +196,7 @@ test("an unsupported file type is delivered as a secure link, not native media",
   await fs.writeFile(txt, "hello");
   const artifacts = new ArtifactStore([root], 15_000_000);
   const publisher = new ArtifactPublisher(artifacts, BASE);
-  const deps = { artifacts, publisher, zip: new ZipService(artifacts) };
+  const deps = { artifacts, publisher, zip: new ZipService(artifacts), fileSearch: new FileSearch([root], artifacts) };
   const summary = await artifacts.register("session-1", txt);
   const whatsapp = new FakeWhatsApp();
   const client = new ResettableOpenAI();
@@ -199,7 +219,7 @@ test("zip_and_send_whatsapp bundles multiple files and delivers them", async () 
   await fs.writeFile(a, Buffer.alloc(500, 1));
   await fs.writeFile(b, "text");
   const artifacts = new ArtifactStore([root], 15_000_000);
-  const deps = { artifacts, publisher: new ArtifactPublisher(artifacts, BASE), zip: new ZipService(artifacts) };
+  const deps = { artifacts, publisher: new ArtifactPublisher(artifacts, BASE), zip: new ZipService(artifacts), fileSearch: new FileSearch([root], artifacts) };
   const idA = (await artifacts.register("session-1", a))!.artifactId;
   const idB = (await artifacts.register("session-1", b))!.artifactId;
   const whatsapp = new FakeWhatsApp();

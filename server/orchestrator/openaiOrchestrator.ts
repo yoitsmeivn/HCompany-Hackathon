@@ -8,6 +8,7 @@ import { turnMetrics } from "../voice/turnMetrics.js";
 import { isTwilioMediaSupported, type ArtifactStore } from "../artifacts/artifactStore.js";
 import type { ArtifactPublisher } from "../artifacts/artifactPublisher.js";
 import type { ZipService } from "../artifacts/zipService.js";
+import type { FileSearch } from "../artifacts/fileSearch.js";
 import { ArtifactPipelineError, ARTIFACT_ERROR_MESSAGE } from "../artifacts/errorCodes.js";
 import { logArtifactStage } from "../artifacts/log.js";
 import {
@@ -48,7 +49,8 @@ Communication routing — exactly two delivery paths exist:
 - WhatsApp delivery to the owner uses the Twilio tools (send_whatsapp_message, send_whatsapp_artifact). Use them whenever the user explicitly says WhatsApp.
 - Email, Gmail, Slack, LinkedIn, Discord, websites, WhatsApp Web, and every other app use communicate_via_computer, which drives the real logged-in browser or desktop app. Never suggest or assume a direct API for these.
 - For any email request, you MUST call communicate_via_computer with application "gmail" (the logged-in Gmail in the browser). Never use computer_task to open Mail.app or to compose, attach, or send an email — computer_task is only for locating files and other non-communication desktop work.
-- To attach or deliver a file: first call computer_task to locate it and explicitly instruct it to "report the file's full absolute path (starting with /Users/)". The system converts that path into an artifacts[] entry with an artifactId. Then pass that artifactId to communicate_via_computer or send_whatsapp_artifact. Never describe a file by name in a second task and never ask the tool to re-find it.
+- To locate ordinary files on the Desktop or in Documents (resumes, PDFs, screenshots, invoices), ALWAYS use find_local_files — it is deterministic and returns artifactIds directly. Do not use computer_task to hunt for such files. Pass the returned artifactId to send_whatsapp_artifact, zip_and_send_whatsapp, or communicate_via_computer.
+- Use computer_task only for genuine on-screen/app work that find_local_files cannot do; if a computer_task happens to locate a file, instruct it to "report the file's full absolute path (starting with /Users/)" and the system will register it as an artifact. Never describe a file by name in a second task and never ask a tool to re-find a file already located this turn.
 - If a file was already located earlier in this same turn, reuse its artifactId — never run another search for it.
 - When the user asked for WhatsApp delivery, do not offer email instead. send_whatsapp_artifact handles every file type: supported types go as media, others as a secure link automatically. Only report a problem if the tool result contains an error code.
 - To send several files together or when the user says "zip"/"compress", use zip_and_send_whatsapp with the artifactIds.
@@ -108,7 +110,29 @@ export interface CommunicationDeps {
   artifacts: ArtifactStore;
   publisher: ArtifactPublisher;
   zip: ZipService;
+  fileSearch: FileSearch;
 }
+
+// Deterministic host-side file search — the primary way to locate ordinary
+// files on Desktop/Documents, so delivery never depends on HoloDesktop prose.
+const FIND_LOCAL_FILES_TOOL = {
+  type: "function" as const,
+  name: "find_local_files",
+  description: "Find local files inside the owner's configured allowed folders and register them as transferable artifacts.",
+  strict: true,
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      query: { type: "string", description: "Filename or semantic filename hint such as resume, CV, screenshot, invoice." },
+      roots: { type: ["array", "null"], items: { type: "string", enum: ["desktop", "documents"] } },
+      extensions: { type: ["array", "null"], items: { type: "string" } },
+      sortBy: { type: ["string", "null"], enum: ["relevance", "modified_desc", "modified_asc", "name_asc", null] },
+      limit: { type: ["integer", "null"], minimum: 1, maximum: 20 },
+    },
+    required: ["query", "roots", "extensions", "sortBy", "limit"],
+  },
+};
 
 // Sends the owner's own artifact (previously located by computer_task) to the
 // owner's WhatsApp. The model supplies an opaque artifactId only — never a
@@ -211,6 +235,7 @@ export class OpenAIOrchestrator {
     return [
       COMPUTER_TOOL,
       COMMUNICATE_TOOL,
+      ...(this.comms ? [FIND_LOCAL_FILES_TOOL] : []),
       ...(this.whatsappSender ? [WHATSAPP_TOOL] : []),
       ...(artifactDelivery ? [WHATSAPP_ARTIFACT_TOOL, ZIP_AND_SEND_TOOL] : []),
     ];
@@ -319,6 +344,10 @@ export class OpenAIOrchestrator {
       }
       if (call.name === "communicate_via_computer") {
         outputs.push(await this.runCommunication(call, input));
+        continue;
+      }
+      if (call.name === "find_local_files" && this.comms) {
+        outputs.push(await this.runFindLocalFiles(call, input));
         continue;
       }
       if (call.name === "zip_and_send_whatsapp" && this.whatsappSender?.sendWhatsAppMedia && this.comms) {
@@ -459,6 +488,22 @@ export class OpenAIOrchestrator {
     }
   }
 
+  // Deterministic host-side file search. Returns registered artifacts (no local
+  // paths) so the model can hand artifactIds straight to a delivery tool.
+  private async runFindLocalFiles(call: ResponseFunctionToolCall, input: OrchestratorInput): Promise<ResponseInputItem> {
+    let output: Record<string, unknown>;
+    try {
+      const args = parseFindLocalFiles(call.arguments);
+      this.events.emit({ kind: "computer-action", sessionId: input.sessionId, label: `Searching your files for "${args.query}"`, state: "current" });
+      const files = await this.comms!.fileSearch.search(args, input.sessionId);
+      this.events.emit({ kind: "computer-action", sessionId: input.sessionId, label: files.length > 0 ? `Found ${files.length} matching file${files.length === 1 ? "" : "s"}` : "No matching files found", state: "done" });
+      output = { files };
+    } catch (error) {
+      output = errorOutput(error);
+    }
+    return { type: "function_call_output" as const, call_id: call.call_id, output: JSON.stringify(output) };
+  }
+
   private async runZipAndSend(call: ResponseFunctionToolCall, input: OrchestratorInput): Promise<ResponseInputItem> {
     let output: Record<string, unknown>;
     try {
@@ -590,6 +635,25 @@ function errorOutput(error: unknown): Record<string, unknown> {
     return { status: "failed", code: error.code, error: ARTIFACT_ERROR_MESSAGE[error.code] };
   }
   return { status: "failed", error: error instanceof Error ? error.message : "delivery failed" };
+}
+
+function parseFindLocalFiles(raw: string): import("../artifacts/fileSearch.js").FileSearchRequest {
+  let value: unknown;
+  try { value = JSON.parse(raw); } catch { throw new Error("find_local_files arguments were not valid JSON"); }
+  const args = value as Record<string, unknown>;
+  const query = typeof args.query === "string" ? args.query.trim() : "";
+  if (!query) throw new Error("find_local_files requires a query");
+  const roots = Array.isArray(args.roots)
+    ? args.roots.filter((root): root is "desktop" | "documents" => root === "desktop" || root === "documents")
+    : undefined;
+  const extensions = Array.isArray(args.extensions)
+    ? args.extensions.filter((ext): ext is string => typeof ext === "string")
+    : undefined;
+  const sortBy = ["relevance", "modified_desc", "modified_asc", "name_asc"].includes(args.sortBy as string)
+    ? (args.sortBy as import("../artifacts/fileSearch.js").FileSortBy)
+    : undefined;
+  const limit = typeof args.limit === "number" && Number.isFinite(args.limit) ? args.limit : undefined;
+  return { query, roots, extensions, sortBy, limit };
 }
 
 function parseZipAndSend(raw: string): { artifactIds: string[]; zipName: string | null; caption: string | null } {
