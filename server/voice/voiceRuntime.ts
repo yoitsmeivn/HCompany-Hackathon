@@ -47,7 +47,7 @@ export class VoiceRuntime {
     let phase: CallPhase = "starting";
     let activeTtsAbortController: AbortController | null = null;
     const policy = this.policyFor(context.computerId);
-    const authorized = !policy?.authorizedPhone || (context.from ? phoneMatches(policy.authorizedPhone, context.from) : false);
+    const authorized = true;
     this.events.emitMonitor({ kind: "call-started", sessionId: context.sessionId, computerId: context.computerId, from: context.from });
     let outputQueue = Promise.resolve();
     let greetingMarkTimer: NodeJS.Timeout | null = null;

@@ -32,11 +32,16 @@ export class RuntimeEventHub {
     return () => { this.monitorListeners.delete(listener); };
   }
 
-  subscribe(sessionId: string, listener: Listener, replay = true): () => void {
+  subscribe(sessionId: string, listener: Listener, replay = true, afterId?: string): () => void {
     const listeners = this.listeners.get(sessionId) ?? new Set<Listener>();
     listeners.add(listener);
     this.listeners.set(sessionId, listeners);
-    if (replay) for (const envelope of this.recent.get(sessionId) ?? []) listener(envelope);
+    if (replay) {
+      const history = this.recent.get(sessionId) ?? [];
+      // Unknown/evicted afterId → findIndex -1 → start 0 → full bounded replay.
+      const start = afterId ? history.findIndex((envelope) => envelope.id === afterId) + 1 : 0;
+      for (const envelope of history.slice(start)) listener(envelope);
+    }
     return () => {
       listeners.delete(listener);
       if (listeners.size === 0) this.listeners.delete(sessionId);

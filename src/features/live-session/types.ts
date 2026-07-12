@@ -47,7 +47,5 @@ export interface LiveSessionData {
   approval: ApprovalRequest | null;
   feed: LiveFeedInfo | null;
   connectionStatus: LiveConnectionStatus;
-  isPaused: boolean;
-  isMuted: boolean;
   selectedCandidateId: ID | null;
 }

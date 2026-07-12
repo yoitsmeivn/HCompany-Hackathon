@@ -2,6 +2,8 @@ import { useState, type CSSProperties } from "react";
 import { useAppDispatch, useAppState } from "@/store/context";
 import { applyRuntimeEvent, type RuntimeEvent } from "@/integrations/runtimeEvents";
 import { demoControlsEnabled } from "../demoControlsGate";
+import { newId } from "@/lib/id";
+import { nowIso } from "@/lib/time";
 
 const labelStyle: CSSProperties = {
   display: "block",
@@ -53,7 +55,8 @@ export default function DemoControlsPanel() {
   const targetComputer = computerId || state.computers[0]?.id || "";
   const targetSession = sessionId || state.sessions[0]?.id || "";
 
-  const emit = (event: RuntimeEvent) => applyRuntimeEvent(dispatch, event);
+  const emit = (event: RuntimeEvent) =>
+    applyRuntimeEvent(dispatch, { id: newId("demo"), at: nowIso(), event });
   const withText = (fn: (value: string) => void, fallback: string) => {
     fn(text.trim() || fallback);
     setText("");

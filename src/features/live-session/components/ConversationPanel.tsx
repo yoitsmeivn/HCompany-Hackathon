@@ -1,18 +1,23 @@
+import { useEffect, useRef } from "react";
 import type { Message } from "@/features/live-session/types";
 
-export default function ConversationPanel({
-  messages,
-  draft,
-  onDraft,
-  onSend,
-}: {
-  messages: Message[];
-  draft: string;
-  onDraft: (value: string) => void;
-  onSend: () => void;
-}) {
+export default function ConversationPanel({ messages }: { messages: Message[] }) {
+  // Scroll only when a genuinely new message lands (last id changes), never on
+  // unrelated re-renders. "nearest" keeps the containing <aside> from jumping
+  // when the newest message is already in view.
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const prevLastMessageIdRef = useRef<string | null>(null);
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+
+  useEffect(() => {
+    if (lastMessageId && lastMessageId !== prevLastMessageIdRef.current) {
+      bottomRef.current?.scrollIntoView({ block: "nearest" });
+    }
+    prevLastMessageIdRef.current = lastMessageId;
+  }, [lastMessageId]);
+
   return (
-    <section style={{ padding: "18px 18px 16px", borderBottom: "1px solid #e7e3dd" }}>
+    <section style={{ padding: "18px 18px 16px" }}>
       <p
         style={{
           margin: "0 0 13px",
@@ -23,12 +28,10 @@ export default function ConversationPanel({
           color: "#9a958c",
         }}
       >
-        Conversation
+        Transcript
       </p>
       {messages.length === 0 ? (
-        <p style={{ margin: 0, fontSize: 12, color: "#9a958c" }}>
-          No messages yet — send Kylian an instruction below.
-        </p>
+        <p style={{ margin: 0, fontSize: 12, color: "#9a958c" }}>No messages yet.</p>
       ) : (
         <div style={{ display: "grid", gap: 11 }}>
           {messages.map((m) => {
@@ -63,45 +66,7 @@ export default function ConversationPanel({
           })}
         </div>
       )}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSend();
-        }}
-        style={{ marginTop: 13, display: "flex", gap: 8 }}
-      >
-        <input
-          value={draft}
-          onChange={(e) => onDraft(e.target.value)}
-          placeholder="Add an instruction…"
-          style={{
-            flex: 1,
-            border: "1px solid #e7e3dd",
-            borderRadius: 7,
-            background: "#fff",
-            padding: "9px 11px",
-            fontSize: 12.5,
-            transition: "border-color .12s,box-shadow .12s",
-          }}
-        />
-        <button
-          type="submit"
-          className="k-primary"
-          style={{
-            border: "none",
-            borderRadius: 7,
-            background: "#1c1b19",
-            color: "#fff",
-            padding: "0 14px",
-            fontSize: 12.5,
-            fontWeight: 500,
-            cursor: "pointer",
-            transition: "background .15s",
-          }}
-        >
-          Send
-        </button>
-      </form>
+      <div ref={bottomRef} aria-hidden />
     </section>
   );
 }

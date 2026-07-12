@@ -86,9 +86,17 @@ export function createApp(config: ServerConfig, events: RuntimeEventHub, session
     response.status(200).set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
     response.flushHeaders();
     response.write(": connected\n\n");
-    const unsubscribe = events.subscribe(request.params.sessionId, (envelope) => {
-      response.write(`id: ${envelope.id}\ndata: ${JSON.stringify(envelope)}\n\n`);
-    });
+    // Browsers resend the last delivered `id:` on EventSource auto-reconnect,
+    // so replay resumes where the client left off instead of from the start.
+    const lastEventId = request.headers["last-event-id"];
+    const unsubscribe = events.subscribe(
+      request.params.sessionId,
+      (envelope) => {
+        response.write(`id: ${envelope.id}\ndata: ${JSON.stringify(envelope)}\n\n`);
+      },
+      true,
+      typeof lastEventId === "string" && lastEventId ? lastEventId : undefined,
+    );
     const heartbeat = setInterval(() => response.write(": heartbeat\n\n"), 20_000);
     request.on("close", () => { clearInterval(heartbeat); unsubscribe(); });
   });

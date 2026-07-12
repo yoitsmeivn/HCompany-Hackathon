@@ -8,6 +8,8 @@
     "dev:web": "vite",
     "dev:api": "node --watch --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx server/index.ts",
     "start:api": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx server/index.ts",
+    "test": "npm run test:web && npm run test:server",
+    "test:web": "vitest run",
     "test:server": "node --import tsx --test server/*.test.ts server/**/*.test.ts",
     "test:nemoclaw": "node --import tsx --test server/channels/nemoclawChannel.test.ts server/channels/nemoclawServer.e2e.test.ts",
     "typecheck": "tsc -b",
@@ -30,6 +32,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
     "@types/express": "^5.0.6",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -41,10 +45,12 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "jsdom": "^29.1.1",
     "tsx": "^4.23.0",
     "typescript": "^5",
     "typescript-eslint": "^8.30.0",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "esbuild@0.28.1": true

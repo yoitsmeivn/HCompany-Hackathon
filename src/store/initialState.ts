@@ -34,8 +34,6 @@ export function emptyLiveSession(): LiveSessionData {
     approval: null,
     feed: null,
     connectionStatus: "connecting",
-    isPaused: false,
-    isMuted: false,
     selectedCandidateId: null,
   };
 }

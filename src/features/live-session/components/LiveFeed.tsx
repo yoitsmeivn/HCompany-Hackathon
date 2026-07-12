@@ -1,12 +1,5 @@
 import type { LiveSessionData } from "@/features/live-session/types";
 
-const CONNECTION_MESSAGES: Record<LiveSessionData["connectionStatus"], string> = {
-  connecting: "Connecting to your companion…",
-  connected: "Waiting for live view from your companion…",
-  disconnected: "Live view is disconnected.",
-  failed: "Live view could not connect.",
-};
-
 const CONNECTION_LABELS: Record<LiveSessionData["connectionStatus"], string> = {
   connecting: "Connecting",
   connected: "Good connection",
@@ -15,7 +8,6 @@ const CONNECTION_LABELS: Record<LiveSessionData["connectionStatus"], string> = {
 };
 
 export default function LiveFeed({ live }: { live: LiveSessionData }) {
-  const feedOpacity = live.isPaused ? 0.55 : 1;
   const pulsing = live.connectionStatus === "connecting" || live.connectionStatus === "connected";
 
   return (
@@ -38,8 +30,6 @@ export default function LiveFeed({ live }: { live: LiveSessionData }) {
           overflow: "hidden",
           boxShadow: "0 10px 40px rgba(0,0,0,0.28)",
           background: "linear-gradient(155deg,#4a4740 0%,#403d37 45%,#33312c 100%)",
-          transition: "opacity .2s",
-          opacity: feedOpacity,
         }}
       >
         {/* Placeholder until the companion streams a real screen (WebRTC later) */}
@@ -48,12 +38,8 @@ export default function LiveFeed({ live }: { live: LiveSessionData }) {
             position: "absolute",
             inset: 0,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
-            padding: 24,
-            textAlign: "center",
           }}
         >
           <span
@@ -65,13 +51,6 @@ export default function LiveFeed({ live }: { live: LiveSessionData }) {
               background: live.connectionStatus === "failed" ? "#c9847a" : "#c9c4ba",
             }}
           />
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#e6e1d7" }}>
-            {CONNECTION_MESSAGES[live.connectionStatus]}
-          </p>
-          <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.55, color: "#8f8a80", maxWidth: 340 }}>
-            The screen appears here while Kylian works, so you can watch every action and step in
-            at any time.
-          </p>
         </div>
 
         {/* HUD overlay — driven by session data */}

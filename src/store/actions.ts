@@ -36,8 +36,6 @@ export type AppAction =
       deliveryUrl?: string;
     }
   | { type: "LIVE_CONNECTION_CHANGED"; sessionId: ID; status: LiveConnectionStatus }
-  | { type: "SESSION_PAUSED_CHANGED"; sessionId: ID; isPaused: boolean }
-  | { type: "SESSION_MUTED_CHANGED"; sessionId: ID; isMuted: boolean }
   | { type: "LIVE_SESSION_INITIALIZED"; sessionId: ID }
   | { type: "FILE_REGISTERED"; file: FileItem }
   | { type: "STATE_IMPORTED"; fixture: DemoFixture }
@@ -122,18 +120,6 @@ export const liveConnectionChanged = (
   sessionId: ID,
   status: LiveConnectionStatus,
 ): AppAction => ({ type: "LIVE_CONNECTION_CHANGED", sessionId, status });
-
-export const sessionPausedChanged = (sessionId: ID, isPaused: boolean): AppAction => ({
-  type: "SESSION_PAUSED_CHANGED",
-  sessionId,
-  isPaused,
-});
-
-export const sessionMutedChanged = (sessionId: ID, isMuted: boolean): AppAction => ({
-  type: "SESSION_MUTED_CHANGED",
-  sessionId,
-  isMuted,
-});
 
 export const liveSessionInitialized = (sessionId: ID): AppAction => ({
   type: "LIVE_SESSION_INITIALIZED",

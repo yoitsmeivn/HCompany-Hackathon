@@ -1,12 +1,10 @@
 import type { Dispatch } from "react";
-import type { RuntimeEvent } from "../../shared/runtimeEvents";
+import type { RuntimeEventEnvelope } from "../../shared/runtimeEvents";
 import type {
   ApprovalRequest,
   Message,
 } from "@/features/live-session/types";
 import type { AppAction } from "@/store/actions";
-import { newId } from "@/lib/id";
-import { nowIso } from "@/lib/time";
 
 // The single adapter between external runtime sources and the app store.
 //
@@ -21,26 +19,29 @@ import { nowIso } from "@/lib/time";
 //
 // The in-app DemoControlsPanel dispatches the same events, proving the path.
 
-export type { RuntimeEvent } from "../../shared/runtimeEvents";
+export type { RuntimeEvent, RuntimeEventEnvelope } from "../../shared/runtimeEvents";
 
-export function applyRuntimeEvent(dispatch: Dispatch<AppAction>, event: RuntimeEvent): void {
+// Ids are derived from the envelope id (minted once on the server), so a
+// replayed or re-delivered envelope maps to the same entity instead of a new one.
+export function applyRuntimeEvent(dispatch: Dispatch<AppAction>, envelope: RuntimeEventEnvelope): void {
+  const { event, id, at } = envelope;
   switch (event.kind) {
     case "companion-status":
       dispatch({
         type: "COMPUTER_UPDATED",
         computerId: event.computerId,
-        patch: { status: event.status, lastSeenAt: nowIso() },
+        patch: { status: event.status, lastSeenAt: at },
       });
       return;
 
     case "agent-message":
     case "user-message": {
       const message: Message = {
-        id: newId("msg"),
+        id: `msg-${id}`,
         who: event.who ?? (event.kind === "agent-message" ? "Kylian" : "You"),
         side: event.kind === "agent-message" ? "agent" : "user",
         text: event.text,
-        at: nowIso(),
+        at,
       };
       dispatch({ type: "SESSION_MESSAGE_ADDED", sessionId: event.sessionId, message });
       return;
@@ -51,9 +52,9 @@ export function applyRuntimeEvent(dispatch: Dispatch<AppAction>, event: RuntimeE
         type: "SESSION_EVENT_ADDED",
         sessionId: event.sessionId,
         event: {
-          id: newId("evt"),
+          id: `evt-${id}`,
           label: event.label,
-          at: nowIso(),
+          at,
           state: event.state ?? "current",
         },
       });
@@ -63,13 +64,13 @@ export function applyRuntimeEvent(dispatch: Dispatch<AppAction>, event: RuntimeE
       dispatch({
         type: "CANDIDATE_FILE_ADDED",
         sessionId: event.sessionId,
-        candidate: { id: newId("cand"), ...event.candidate },
+        candidate: { id: `cand-${id}`, ...event.candidate },
       });
       return;
 
     case "approval-requested": {
       const approval: ApprovalRequest = {
-        id: newId("appr"),
+        id: `appr-${id}`,
         summary: event.summary,
         fileName: event.fileName,
         status: "pending",

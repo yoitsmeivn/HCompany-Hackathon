@@ -80,10 +80,20 @@ export default function SessionPage() {
     if (session && !live) dispatch(liveSessionInitialized(session.id));
   }, [session, live, dispatch]);
 
+  // Subscribe once per session id (the session object itself changes identity
+  // on every store update, so it must not be a dependency). The server replays
+  // its recent-event buffer on every connect — `seen` drops envelopes that were
+  // already applied, so reconnects and StrictMode double-mounts never duplicate.
+  const activeSessionId = session?.id;
   useEffect(() => {
-    if (!session) return;
-    return subscribeToSessionEvents(session.id, ({ event }) => applyRuntimeEvent(dispatch, event));
-  }, [session, dispatch]);
+    if (!activeSessionId) return;
+    const seen = new Set<string>();
+    return subscribeToSessionEvents(activeSessionId, (envelope) => {
+      if (seen.has(envelope.id)) return;
+      seen.add(envelope.id);
+      applyRuntimeEvent(dispatch, envelope);
+    });
+  }, [activeSessionId, dispatch]);
 
   if (state.loading.sessions) return null;
   if (!session) return <SessionNotFound />;
@@ -95,7 +105,7 @@ export default function SessionPage() {
       session={session}
       computerName={computerName}
       live={live ?? emptyLiveSession()}
-      computer={state.computers.find((item) => item.id === session.computerId)}
     />
+
   );
 }

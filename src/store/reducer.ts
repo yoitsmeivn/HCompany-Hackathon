@@ -88,6 +88,10 @@ export function reducer(state: AppState, action: AppAction): AppState {
       };
 
     case "SESSION_MESSAGE_ADDED":
+      // Idempotent: replayed/re-delivered events reuse their envelope-derived id.
+      if (state.live[action.sessionId]?.messages.some((m) => m.id === action.message.id)) {
+        return state;
+      }
       return updateLive(
         state,
         action.sessionId,
@@ -96,6 +100,9 @@ export function reducer(state: AppState, action: AppAction): AppState {
       );
 
     case "SESSION_EVENT_ADDED":
+      if (state.live[action.sessionId]?.activity.some((e) => e.id === action.event.id)) {
+        return state;
+      }
       return updateLive(
         state,
         action.sessionId,
@@ -111,6 +118,9 @@ export function reducer(state: AppState, action: AppAction): AppState {
       );
 
     case "CANDIDATE_FILE_ADDED":
+      if (state.live[action.sessionId]?.candidates.some((c) => c.id === action.candidate.id)) {
+        return state;
+      }
       return updateLive(
         state,
         action.sessionId,
@@ -125,6 +135,10 @@ export function reducer(state: AppState, action: AppAction): AppState {
       }));
 
     case "APPROVAL_REQUESTED":
+      // A replayed request must not reset an already approved/declined approval.
+      if (state.live[action.sessionId]?.approval?.id === action.approval.id) {
+        return state;
+      }
       return updateLive(
         state,
         action.sessionId,
@@ -154,18 +168,6 @@ export function reducer(state: AppState, action: AppAction): AppState {
       return updateLive(state, action.sessionId, (live) => ({
         ...live,
         connectionStatus: action.status,
-      }));
-
-    case "SESSION_PAUSED_CHANGED":
-      return updateLive(state, action.sessionId, (live) => ({
-        ...live,
-        isPaused: action.isPaused,
-      }));
-
-    case "SESSION_MUTED_CHANGED":
-      return updateLive(state, action.sessionId, (live) => ({
-        ...live,
-        isMuted: action.isMuted,
       }));
 
     case "LIVE_SESSION_INITIALIZED":
