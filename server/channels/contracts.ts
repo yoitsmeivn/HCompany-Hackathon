@@ -17,5 +17,6 @@ export interface LiveViewPort {
   closeSession(sessionId: string): Promise<void>;
 }
 
-// Future implementations: Gradium STT/TTS, NemoClaw/WhatsApp and
-// LiveKit/WebRTC. These contracts deliberately contain no provider claims.
+// Future implementations: Gradium STT/TTS and LiveKit/WebRTC. The
+// NemoClaw/WhatsApp ingress adapter lives in ./nemoclawChannel.ts. These
+// contracts deliberately contain no provider claims.

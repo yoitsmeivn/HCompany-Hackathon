@@ -4,6 +4,7 @@ import type { ServerConfig } from "./config.js";
 import type { RuntimeEventHub } from "./runtime/eventHub.js";
 import type { SessionOrchestrationService } from "./orchestrator/sessionOrchestrationService.js";
 import { incomingVoice, validateTwilio } from "./twilio/routes.js";
+import { nemoclawIngress, validateNemoclaw } from "./channels/nemoclawChannel.js";
 import { OutboundCallConfigurationError, OutboundCallService } from "./twilio/outboundCalls.js";
 import { ZodError } from "zod";
 import { buildTwilioCallErrorResponse, getTwilioErrorDiagnostic } from "./twilio/errorDiagnostics.js";
@@ -42,6 +43,8 @@ export function createApp(config: ServerConfig, events: RuntimeEventHub, session
     });
     response.status(202).json({ accepted: true, sessionId });
   });
+
+  app.post("/api/channels/nemoclaw/messages", validateNemoclaw(config), nemoclawIngress(config, sessions));
 
   app.post("/api/twilio/voice", validateTwilio(config), incomingVoice(config));
   app.post("/api/twilio/calls", async (request, response) => {

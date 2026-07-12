@@ -27,6 +27,8 @@ export interface ServerConfig {
   gradiumVadHorizonSeconds: number;
   gradiumVadInactivityThreshold: number;
   gradiumVadConsecutiveSteps: number;
+  nemoclawIngressToken?: string;
+  nemoclawComputerId: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -58,6 +60,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     gradiumVadHorizonSeconds: numberValue(env.GRADIUM_VAD_HORIZON_SECONDS, 2, "GRADIUM_VAD_HORIZON_SECONDS", 0),
     gradiumVadInactivityThreshold: numberValue(env.GRADIUM_VAD_INACTIVITY_THRESHOLD, 0.5, "GRADIUM_VAD_INACTIVITY_THRESHOLD", 0, 1),
     gradiumVadConsecutiveSteps: integer(env.GRADIUM_VAD_CONSECUTIVE_STEPS, 3, "GRADIUM_VAD_CONSECUTIVE_STEPS", 1, 20),
+    nemoclawIngressToken: env.NEMOCLAW_INGRESS_TOKEN,
+    nemoclawComputerId: env.NEMOCLAW_COMPUTER_ID ?? env.KYLIAN_VOICE_COMPUTER_ID ?? "demo-computer",
   };
   validateConfig(config);
   return config;
