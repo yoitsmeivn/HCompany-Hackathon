@@ -14,6 +14,7 @@ import { detectCompanion, type CompanionInfo } from "@/services/companionService
 import { useAppDispatch, useAppState } from "@/store/context";
 import { computerConnected, preferencesChanged } from "@/store/actions";
 import { selectConnectedComputer, selectRecentSessions } from "@/store/selectors";
+import { isValidTestCallPhone, startTwilioTestCall } from "@/services/twilioCallsService";
 
 const FOLDER_OPTIONS = ["Desktop", "Documents", "Downloads", "Projects"];
 const APPLICATION_OPTIONS = ["Finder", "Preview", "Mail", "Notes"];
@@ -37,6 +38,8 @@ export default function SetupPage() {
   const [name, setName] = useState("");
   const [waiting, setWaiting] = useState(false);
   const [companion, setCompanion] = useState<CompanionInfo | null>(null);
+  const [callState, setCallState] = useState<"idle" | "calling" | "queued">("idle");
+  const [callError, setCallError] = useState<string | null>(null);
 
   // Probe for a local companion once — the future WebSocket boundary.
   useEffect(() => {
@@ -55,6 +58,8 @@ export default function SetupPage() {
   const connect = () => {
     if (waiting) {
       setWaiting(false);
+      setCallState("idle");
+      setCallError(null);
       return;
     }
     const trimmed = name.trim();
@@ -69,6 +74,22 @@ export default function SetupPage() {
       }),
     );
     setWaiting(true);
+    setCallState("idle");
+    setCallError(null);
+  };
+
+  const validCallPhone = isValidTestCallPhone(phone);
+  const startTestCall = async () => {
+    if (!waiting || !validCallPhone || callState === "calling") return;
+    setCallState("calling");
+    setCallError(null);
+    try {
+      await startTwilioTestCall({ to: phone });
+      setCallState("queued");
+    } catch (error: unknown) {
+      setCallState("idle");
+      setCallError(error instanceof Error ? error.message : "Could not start the test call.");
+    }
   };
 
   const headerPill = connectedComputer ? (
@@ -378,30 +399,57 @@ export default function SetupPage() {
                 {waiting ? "Cancel connection" : "Connect this computer"}
               </button>
               {waiting && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    border: "1px solid #e7e3dd",
-                    borderRadius: 8,
-                    background: "#f7f5f0",
-                    padding: "12px 14px",
-                  }}
-                >
-                  <span
-                    className="k-pulse"
-                    style={{ height: 8, width: 8, borderRadius: "50%", background: "#1c1b19" }}
-                  />
-                  <div>
-                    <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500 }}>Waiting for call</p>
-                    <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#9a958c" }}>
-                      {phone.trim()
-                        ? `Call or message Kylian from ${phone.trim()} to begin.`
-                        : "Call or message Kylian from your verified number to begin."}
-                    </p>
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      border: "1px solid #e7e3dd",
+                      borderRadius: 8,
+                      background: "#f7f5f0",
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <StatusDot variant="hollow" size={7} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500 }}>Computer configured</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#9a958c" }}>
+                        Start a test call when you’re ready to speak with Kylian.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                  <button
+                    className="k-primary"
+                    onClick={() => void startTestCall()}
+                    disabled={!validCallPhone || callState === "calling"}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #1c1b19",
+                      borderRadius: 8,
+                      background: "#fff",
+                      color: "#1c1b19",
+                      padding: 12,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: validCallPhone && callState !== "calling" ? "pointer" : "default",
+                      opacity: validCallPhone && callState !== "calling" ? 1 : 0.45,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {callState === "calling" ? "Calling…" : "Start test call"}
+                  </button>
+                  {callState === "queued" && (
+                    <p style={{ margin: 0, fontSize: 12, color: "#3a382f" }}>
+                      Call queued. Answer your phone to speak with Kylian.
+                    </p>
+                  )}
+                  {callError && (
+                    <p role="alert" style={{ margin: 0, fontSize: 12, color: "var(--k-danger)" }}>
+                      {callError}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -11,6 +11,8 @@ import {
   selectSessionById,
 } from "@/store/selectors";
 import { emptyLiveSession } from "@/store/initialState";
+import { subscribeToSessionEvents } from "@/services/orchestrationService";
+import { applyRuntimeEvent } from "@/integrations/runtimeEvents";
 
 // /session — jump to the most recent active session, else back to the dashboard.
 export function SessionRedirect() {
@@ -78,6 +80,11 @@ export default function SessionPage() {
     if (session && !live) dispatch(liveSessionInitialized(session.id));
   }, [session, live, dispatch]);
 
+  useEffect(() => {
+    if (!session) return;
+    return subscribeToSessionEvents(session.id, ({ event }) => applyRuntimeEvent(dispatch, event));
+  }, [session, dispatch]);
+
   if (state.loading.sessions) return null;
   if (!session) return <SessionNotFound />;
 
@@ -88,6 +95,7 @@ export default function SessionPage() {
       session={session}
       computerName={computerName}
       live={live ?? emptyLiveSession()}
+      computer={state.computers.find((item) => item.id === session.computerId)}
     />
   );
 }

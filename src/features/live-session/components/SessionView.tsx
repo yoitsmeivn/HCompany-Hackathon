@@ -6,6 +6,7 @@ import ActivityTimeline from "./ActivityTimeline";
 import CandidateFiles from "./CandidateFiles";
 import ApprovalCard from "./ApprovalCard";
 import type { Session } from "@/features/sessions/types";
+import type { Computer } from "@/features/devices/types";
 import type { LiveSessionData } from "@/features/live-session/types";
 import { newId } from "@/lib/id";
 import { nowIso } from "@/lib/time";
@@ -19,6 +20,7 @@ import {
   sessionPausedChanged,
   sessionUpdated,
 } from "@/store/actions";
+import { sendSessionMessage } from "@/services/orchestrationService";
 
 const ctrlButtonStyle = {
   display: "inline-flex",
@@ -115,10 +117,12 @@ export default function SessionView({
   session,
   computerName,
   live,
+  computer,
 }: {
   session: Session;
   computerName: string;
   live: LiveSessionData;
+  computer?: Computer;
 }) {
   const dispatch = useAppDispatch();
   const [draft, setDraft] = useState("");
@@ -138,6 +142,11 @@ export default function SessionView({
       }),
     );
     setDraft("");
+    if (computer) {
+      void sendSessionMessage({ sessionId: session.id, computerId: computer.id, text, access: computer.access }).catch((error: unknown) => {
+        dispatch(sessionMessageAdded(session.id, { id: newId("msg"), who: "Kylian", side: "agent", text: `The backend could not accept that message: ${error instanceof Error ? error.message : "Unknown error"}`, at: nowIso() }));
+      });
+    }
   };
 
   const stop = () => {

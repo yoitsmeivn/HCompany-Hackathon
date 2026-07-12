@@ -8,8 +8,9 @@ import { COMPUTER_STATUS_LABELS } from "@/features/devices/types";
 import { newId } from "@/lib/id";
 import { nowIso } from "@/lib/time";
 import { useAppDispatch, useAppState } from "@/store/context";
-import { liveSessionInitialized, sessionCreated } from "@/store/actions";
+import { liveSessionInitialized, sessionCreated, sessionMessageAdded } from "@/store/actions";
 import { selectActiveComputer } from "@/store/selectors";
+import { sendSessionMessage } from "@/services/orchestrationService";
 
 export default function NewSessionPage() {
   usePageTitle("New session");
@@ -45,6 +46,10 @@ export default function NewSessionPage() {
       }),
     );
     dispatch(liveSessionInitialized(id));
+    dispatch(sessionMessageAdded(id, { id: newId("msg"), who: "You", side: "user", text, at: nowIso() }));
+    void sendSessionMessage({ sessionId: id, computerId: computer.id, text, access: computer.access }).catch((error: unknown) => {
+      dispatch(sessionMessageAdded(id, { id: newId("msg"), who: "Kylian", side: "agent", text: `The backend could not accept that message: ${error instanceof Error ? error.message : "Unknown error"}`, at: nowIso() }));
+    });
     navigate(`/session/${id}`);
   };
 

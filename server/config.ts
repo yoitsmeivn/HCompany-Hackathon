@@ -1,0 +1,98 @@
+export type VoiceProvider = "gradium" | "openai";
+export type ExecutorMode = "mock" | "h-company" | "local-companion";
+
+export interface ServerConfig {
+  port: number;
+  publicBaseUrl: string;
+  openaiApiKey?: string;
+  openaiModel: string;
+  executorMode: ExecutorMode;
+  voiceProvider: VoiceProvider;
+  twilioAccountSid?: string;
+  twilioAuthToken?: string;
+  twilioPhoneNumber?: string;
+  twilioValidateSignatures: boolean;
+  twilioMediaStreamUrl?: string;
+  voiceComputerId?: string;
+  voiceTranscriptionModel: string;
+  voiceTtsModel: string;
+  voiceTtsVoice: string;
+  gradiumApiKey?: string;
+  gradiumSttModel: string;
+  gradiumTtsModel: string;
+  gradiumTtsVoice?: string;
+  gradiumSttLanguage: string;
+  gradiumSttDelayInFrames: number;
+  gradiumVadHorizonSeconds: number;
+  gradiumVadInactivityThreshold: number;
+  gradiumVadConsecutiveSteps: number;
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
+  const port = integer(env.KYLIAN_API_PORT, 8787, "KYLIAN_API_PORT", 1, 65535);
+  const gradiumConfigured = Boolean(env.GRADIUM_API_KEY && env.GRADIUM_TTS_VOICE);
+  const config: ServerConfig = {
+    port,
+    publicBaseUrl: env.KYLIAN_PUBLIC_BASE_URL ?? `http://localhost:${port}`,
+    openaiApiKey: env.OPENAI_API_KEY,
+    openaiModel: env.OPENAI_MODEL ?? "gpt-5.4-mini",
+    executorMode: enumValue(env.KYLIAN_EXECUTOR_MODE, ["mock", "h-company", "local-companion"] as const, "mock", "KYLIAN_EXECUTOR_MODE"),
+    voiceProvider: enumValue(env.KYLIAN_VOICE_PROVIDER, ["gradium", "openai"] as const, gradiumConfigured ? "gradium" : "openai", "KYLIAN_VOICE_PROVIDER"),
+    twilioAccountSid: env.TWILIO_ACCOUNT_SID,
+    twilioAuthToken: env.TWILIO_AUTH_TOKEN,
+    twilioPhoneNumber: env.TWILIO_PHONE_NUMBER,
+    twilioValidateSignatures: booleanValue(env.TWILIO_VALIDATE_SIGNATURES, true, "TWILIO_VALIDATE_SIGNATURES"),
+    twilioMediaStreamUrl: env.TWILIO_MEDIA_STREAM_URL,
+    voiceComputerId: env.KYLIAN_VOICE_COMPUTER_ID,
+    voiceTranscriptionModel: env.OPENAI_TRANSCRIPTION_MODEL ?? "gpt-4o-mini-transcribe",
+    voiceTtsModel: env.OPENAI_TTS_MODEL ?? "tts-1",
+    voiceTtsVoice: env.OPENAI_TTS_VOICE ?? "alloy",
+    gradiumApiKey: env.GRADIUM_API_KEY,
+    gradiumSttModel: env.GRADIUM_STT_MODEL ?? "default",
+    gradiumTtsModel: env.GRADIUM_TTS_MODEL ?? "default",
+    gradiumTtsVoice: env.GRADIUM_TTS_VOICE,
+    gradiumSttLanguage: env.GRADIUM_STT_LANGUAGE ?? "en",
+    gradiumSttDelayInFrames: integer(env.GRADIUM_STT_DELAY_IN_FRAMES, 16, "GRADIUM_STT_DELAY_IN_FRAMES", 0, 80),
+    gradiumVadHorizonSeconds: numberValue(env.GRADIUM_VAD_HORIZON_SECONDS, 2, "GRADIUM_VAD_HORIZON_SECONDS", 0),
+    gradiumVadInactivityThreshold: numberValue(env.GRADIUM_VAD_INACTIVITY_THRESHOLD, 0.5, "GRADIUM_VAD_INACTIVITY_THRESHOLD", 0, 1),
+    gradiumVadConsecutiveSteps: integer(env.GRADIUM_VAD_CONSECUTIVE_STEPS, 3, "GRADIUM_VAD_CONSECUTIVE_STEPS", 1, 20),
+  };
+  validateConfig(config);
+  return config;
+}
+
+function validateConfig(config: ServerConfig): void {
+  if (config.twilioMediaStreamUrl) {
+    const url = new URL(config.twilioMediaStreamUrl);
+    if (url.protocol !== "wss:" || url.pathname !== "/twilio/media-stream" || url.search) throw new Error("TWILIO_MEDIA_STREAM_URL must be a public wss:// URL ending in /twilio/media-stream with no query string");
+  }
+  const twilioEnabled = Boolean(config.twilioAuthToken || config.twilioMediaStreamUrl);
+  if (config.twilioAuthToken && !config.twilioMediaStreamUrl) throw new Error("TWILIO_MEDIA_STREAM_URL is required when TWILIO_AUTH_TOKEN is configured");
+  if (config.twilioMediaStreamUrl && config.twilioValidateSignatures && !config.twilioAuthToken) throw new Error("TWILIO_AUTH_TOKEN is required when Twilio signature validation is enabled");
+  if (twilioEnabled && !config.openaiApiKey) throw new Error("OPENAI_API_KEY is required for Kylian orchestration when voice is configured");
+  if (twilioEnabled && !config.voiceComputerId) throw new Error("KYLIAN_VOICE_COMPUTER_ID is required for the configured voice transport");
+  if (config.voiceProvider === "gradium" && !config.gradiumApiKey) throw new Error("GRADIUM_API_KEY is required when KYLIAN_VOICE_PROVIDER=gradium");
+  if (config.voiceProvider === "gradium" && !config.gradiumTtsVoice) throw new Error("GRADIUM_TTS_VOICE is required when KYLIAN_VOICE_PROVIDER=gradium");
+}
+
+function integer(value: string | undefined, fallback: number, name: string, min: number, max: number): number {
+  const parsed = value === undefined ? fallback : Number(value);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) throw new Error(`${name} must be an integer from ${min} to ${max}`);
+  return parsed;
+}
+function numberValue(value: string | undefined, fallback: number, name: string, min: number, max = Number.POSITIVE_INFINITY): number {
+  const parsed = value === undefined ? fallback : Number(value);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) throw new Error(`${name} must be a number from ${min} to ${max}`);
+  return parsed;
+}
+function booleanValue(value: string | undefined, fallback: boolean, name: string): boolean {
+  if (value === undefined) return fallback;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error(`${name} must be true or false`);
+}
+function enumValue<const T extends readonly string[]>(value: string | undefined, values: T, fallback: T[number], name: string): T[number] {
+  const candidate = value ?? fallback;
+  if (!values.includes(candidate)) throw new Error(`${name} must be one of: ${values.join(", ")}`);
+  return candidate as T[number];
+}

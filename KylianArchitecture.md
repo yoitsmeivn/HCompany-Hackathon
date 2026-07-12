@@ -838,3 +838,26 @@ The most important rule is:
 
 **OpenAI controls the workflow, but the backend controls authority. H Company controls the interface, but only within the task and permissions the backend provides.**
 
+
+
+Caller
+  ↓
+Twilio phone number
+  ↓
+Twilio sends call audio to your public WebSocket URL
+  ↓
+Tunnel forwards that WebSocket to localhost:8787
+  ↓
+Kylian backend
+  ↓
+Gradium STT WebSocket
+  ↓
+OpenAI orchestrator
+  ↓
+Gradium TTS WebSocket
+  ↓
+Kylian backend
+  ↓
+Twilio Media Stream
+  ↓
+Caller hears Kylian

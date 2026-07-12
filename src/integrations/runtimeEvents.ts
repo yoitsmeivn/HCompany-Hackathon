@@ -1,13 +1,9 @@
 import type { Dispatch } from "react";
-import type { ID, ComputerStatus, SessionState } from "@/types/common";
+import type { RuntimeEvent } from "../../shared/runtimeEvents";
 import type {
-  ActivityEvent,
   ApprovalRequest,
-  CandidateFile,
-  LiveConnectionStatus,
   Message,
 } from "@/features/live-session/types";
-import type { FileItem } from "@/features/files/types";
 import type { AppAction } from "@/store/actions";
 import { newId } from "@/lib/id";
 import { nowIso } from "@/lib/time";
@@ -25,17 +21,7 @@ import { nowIso } from "@/lib/time";
 //
 // The in-app DemoControlsPanel dispatches the same events, proving the path.
 
-export type RuntimeEvent =
-  | { kind: "companion-status"; computerId: ID; status: ComputerStatus }
-  | { kind: "agent-message"; sessionId: ID; text: string; who?: string }
-  | { kind: "user-message"; sessionId: ID; text: string; who?: string }
-  | { kind: "computer-action"; sessionId: ID; label: string; state?: ActivityEvent["state"] }
-  | { kind: "candidate-file"; sessionId: ID; candidate: Omit<CandidateFile, "id"> }
-  | { kind: "approval-requested"; sessionId: ID; summary: string; fileName: string }
-  | { kind: "approval-resolved"; sessionId: ID; approved: boolean; deliveryUrl?: string }
-  | { kind: "live-connection"; sessionId: ID; status: LiveConnectionStatus }
-  | { kind: "session-state"; sessionId: ID; state: SessionState; status: string; detail?: string }
-  | { kind: "file-delivered"; file: FileItem };
+export type { RuntimeEvent } from "../../shared/runtimeEvents";
 
 export function applyRuntimeEvent(dispatch: Dispatch<AppAction>, event: RuntimeEvent): void {
   switch (event.kind) {
