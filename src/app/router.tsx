@@ -5,6 +5,8 @@ import MonitoringPage from "@/pages/MonitoringPage";
 import SessionsPage from "@/pages/SessionsPage";
 import SessionPage, { SessionRedirect } from "@/pages/SessionPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import TermsPage from "@/pages/TermsPage";
 import { useAppState } from "@/store/context";
 
 // Send first-time users to onboarding; returning (configured) users go straight
@@ -25,6 +27,8 @@ export const router = createBrowserRouter([
       { path: "/sessions", element: <SessionsPage /> },
     ],
   },
+  { path: "/privacy", element: <PrivacyPage /> },
+  { path: "/terms", element: <TermsPage /> },
   { path: "/session", element: <SessionRedirect /> },
   { path: "/session/:sessionId", element: <SessionPage /> },
   { path: "*", element: <NotFoundPage /> },

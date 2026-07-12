@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/app/usePageTitle";
 import KylianLogo from "@/components/brand/KylianLogo";
 import AccessModePicker from "@/features/access/components/AccessModePicker";
@@ -36,6 +36,7 @@ export default function OnboardingPage() {
   const [mode, setMode] = useState<AccessMode>(DEFAULT_ACCESS_POLICY.mode);
   const [folders, setFolders] = useState<string[]>(DEFAULT_ACCESS_POLICY.selectedFolders);
   const [applications, setApplications] = useState<string[]>(DEFAULT_ACCESS_POLICY.selectedApplications);
+  const [smsConsent, setSmsConsent] = useState(state.preferences.smsConsent);
   const [computerId, setComputerId] = useState<string>("demo-computer");
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -82,7 +83,7 @@ export default function OnboardingPage() {
       access,
     }));
     dispatch(activeComputerChanged(computerId));
-    dispatch(preferencesChanged({ name: name.trim(), authorizedPhone: authorizedPhone.trim(), configured: true }));
+    dispatch(preferencesChanged({ name: name.trim(), authorizedPhone: authorizedPhone.trim(), configured: true, smsConsent }));
     setSaving(false);
     navigate("/monitor");
   };
@@ -130,6 +131,28 @@ export default function OnboardingPage() {
               </div>
             </>
           )}
+
+          <div style={{ border: "1px solid #e7e3dd", borderRadius: 8, background: "#faf9f7", padding: "12px 14px" }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={smsConsent}
+                onChange={(e) => setSmsConsent(e.target.checked)}
+                style={{ marginTop: 2, width: 14, height: 14, flexShrink: 0, accentColor: "#1c1b19", cursor: "pointer" }}
+              />
+              <span style={{ fontSize: 12.5, color: "#3a382f", lineHeight: 1.6 }}>
+                I agree to receive conversational and task-related SMS messages from Kylian. Message
+                frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for
+                assistance.
+              </span>
+            </label>
+            <p style={{ margin: "8px 0 0", fontSize: 11.5, color: "#9a958c" }}>
+              Optional — not required to use Kylian. See our{" "}
+              <Link to="/privacy" style={{ color: "#6a665f", textDecoration: "underline" }}>Privacy Policy</Link>{" "}
+              and{" "}
+              <Link to="/terms" style={{ color: "#6a665f", textDecoration: "underline" }}>Terms and Conditions</Link>.
+            </p>
+          </div>
 
           {error && <p style={{ margin: 0, fontSize: 12, color: "var(--k-danger)" }}>{error}</p>}
 
