@@ -73,6 +73,7 @@ before(async () => {
       KYLIAN_VOICE_PROVIDER: "openai",
       KYLIAN_VOICE_COMPUTER_ID: "demo-computer",
       NEMOCLAW_INGRESS_TOKEN: TOKEN,
+      WHATSAPP_ALLOWED_IDS: "15551230000",
       // Force the deterministic mock orchestrator and disable outbound transports.
       OPENAI_API_KEY: "",
       TWILIO_ACCOUNT_SID: "",
@@ -122,6 +123,11 @@ test("also accepts the token via the x-nemoclaw-token header", async () => {
   const response = await post(message({ messageId: "wamid.e2e.2" }), { "x-nemoclaw-token": TOKEN });
   assert.equal(response.status, 200);
   assert.equal(((await response.json()) as { messageId: string }).messageId, "wamid.e2e.2");
+});
+
+test("rejects an authenticated sender that is not on the allowlist with 403", async () => {
+  const response = await post(message({ whatsappUserId: "15559998888", messageId: "wamid.e2e.deny" }), { Authorization: `Bearer ${TOKEN}` });
+  assert.equal(response.status, 403);
 });
 
 test("rejects a malformed payload with 400", async () => {

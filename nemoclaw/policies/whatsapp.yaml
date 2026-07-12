@@ -1,0 +1,21 @@
+# OpenShell network policy for the Kylian WhatsApp sandbox.
+#
+# `channels add whatsapp` installs the built-in `whatsapp` preset (egress to
+# WhatsApp/Meta endpoints required for pairing and delivery). This ADDITIVE
+# policy allows the one extra destination the ingress agent needs: the Kylian
+# backend. Everything else stays blocked by OpenShell default-deny.
+#
+# NOTE: exact policy schema is version-specific. Validate with
+# `openclaw policy schema` and keep the built-in whatsapp preset in place.
+name: kylian-backend-egress
+description: Allow the ingress agent to reach the Kylian backend only.
+egress:
+  allow:
+    # Replace with your Kylian backend host (same host as KYLIAN_BASE_URL and
+    # the Twilio tunnel). Do NOT use a wildcard.
+    - host: YOUR_KYLIAN_HOST         # e.g. kylian.example.com
+      ports: [443]
+      protocol: https
+  # Default-deny everything not explicitly allowed above (plus the whatsapp
+  # preset). Keep this list empty of broad rules.
+default: deny

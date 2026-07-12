@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { z } from "zod";
 import type { ServerConfig } from "../config.js";
 import type { SessionOrchestrationService } from "../orchestrator/sessionOrchestrationService.js";
+import type { PolicyStore } from "../runtime/policyStore.js";
 
 /**
  * NemoClaw / OpenClaw WhatsApp ingress.
@@ -30,9 +31,35 @@ export const nemoclawMessageSchema = z.object({
 
 export type NemoclawMessage = z.infer<typeof nemoclawMessageSchema>;
 
+export type NemoclawAttachment = z.infer<typeof attachmentSchema>;
+
 /** Deterministic Kylian session id for a WhatsApp participant. */
 export function whatsappSessionId(whatsappUserId: string): string {
   return `whatsapp:${whatsappUserId}`;
+}
+
+/**
+ * True when the sender is permitted. An empty allowlist means "no restriction"
+ * (dev/mock default); a non-empty allowlist rejects any id not on it. Mirrors
+ * NemoClaw's own `WHATSAPP_ALLOWED_IDS` gate so the backend enforces it too.
+ */
+export function isAllowedWhatsappUser(config: ServerConfig, whatsappUserId: string): boolean {
+  return config.whatsappAllowedIds.length === 0 || config.whatsappAllowedIds.includes(whatsappUserId);
+}
+
+/**
+ * Folds attachment metadata into a short, human-readable note appended to the
+ * message text so it reaches the orchestrator (and both orchestrator
+ * implementations) without new plumbing. Only metadata is forwarded — the
+ * bytes stay in WhatsApp/NemoClaw.
+ */
+export function summarizeAttachments(attachments: NemoclawAttachment[] | undefined): string {
+  if (!attachments || attachments.length === 0) return "";
+  const items = attachments.map((a) => {
+    const name = a.filename ?? a.id ?? "attachment";
+    return a.contentType ? `${name} (${a.contentType})` : name;
+  });
+  return `\n\n[User attached: ${items.join(", ")}]`;
 }
 
 function extractToken(header: string | undefined): string | undefined {
@@ -53,7 +80,11 @@ export function validateNemoclaw(config: ServerConfig): RequestHandler {
   };
 }
 
-export function nemoclawIngress(config: ServerConfig, sessions: SessionOrchestrationService): RequestHandler {
+export function nemoclawIngress(
+  config: ServerConfig,
+  sessions: SessionOrchestrationService,
+  policies: PolicyStore,
+): RequestHandler {
   return async (request, response) => {
     const parsed = nemoclawMessageSchema.safeParse(request.body);
     if (!parsed.success) {
@@ -61,13 +92,21 @@ export function nemoclawIngress(config: ServerConfig, sessions: SessionOrchestra
       return;
     }
     const message = parsed.data;
+    if (!isAllowedWhatsappUser(config, message.whatsappUserId)) {
+      response.status(403).json({ messageId: message.messageId, error: "Sender is not authorized" });
+      return;
+    }
+    // Enforce the owner's access policy for this computer, same as the voice
+    // and simulate-call paths — never run a WhatsApp task with empty access
+    // when a policy exists.
+    const policy = policies.get(config.nemoclawComputerId);
     try {
       const result = await sessions.handle({
         sessionId: whatsappSessionId(message.whatsappUserId),
         computerId: config.nemoclawComputerId,
-        text: message.text,
-        allowedFolders: [],
-        allowedApplications: [],
+        text: message.text + summarizeAttachments(message.attachments),
+        allowedFolders: policy?.allowedFolders ?? [],
+        allowedApplications: policy?.allowedApplications ?? [],
       });
       response.status(200).json({ messageId: message.messageId, text: result.text });
     } catch (error: unknown) {

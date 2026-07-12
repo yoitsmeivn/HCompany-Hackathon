@@ -1,0 +1,56 @@
+# The single tool the Kylian WhatsApp ingress agent may call. It forwards a
+# WhatsApp message to Kylian's backend and returns the reply text.
+#
+# NOTE: key names for HTTP tools vary by OpenClaw version. Validate against your
+# installed schema (`openclaw tools schema`) and adjust field names if needed —
+# the intent (POST JSON with a bearer token, return {messageId, text}) is stable.
+name: kylian_handle_message
+description: >-
+  Forward a single inbound WhatsApp message to the Kylian backend and return
+  Kylian's reply text. Call this exactly once per user message. Do not modify
+  the message. Do not plan or perform tasks yourself.
+type: http
+request:
+  method: POST
+  # KYLIAN_BASE_URL is provided to the sandbox environment (see .env.example).
+  url: "${KYLIAN_BASE_URL}/api/channels/nemoclaw/messages"
+  headers:
+    Content-Type: application/json
+    # Resolved from the OpenShell provider registered in step 3 of the runbook —
+    # never hardcode the secret here.
+    Authorization: "Bearer openshell:resolve:env:NEMOCLAW_INGRESS_TOKEN"
+  # Map the tool's input parameters into the JSON body Kylian expects.
+  body:
+    whatsappUserId: "{{ whatsappUserId }}"
+    messageId: "{{ messageId }}"
+    text: "{{ text }}"
+    attachments: "{{ attachments }}"
+parameters:
+  type: object
+  required: [whatsappUserId, messageId, text]
+  additionalProperties: false
+  properties:
+    whatsappUserId:
+      type: string
+      description: The sender's WhatsApp id.
+    messageId:
+      type: string
+      description: The inbound WhatsApp message id (echoed back by the backend).
+    text:
+      type: string
+      description: The message text, passed through verbatim.
+    attachments:
+      type: array
+      description: Optional attachment metadata. Only metadata is forwarded, not bytes.
+      items:
+        type: object
+        properties:
+          id: { type: string }
+          url: { type: string }
+          contentType: { type: string }
+          filename: { type: string }
+# The backend responds 200 {messageId, text}. Non-2xx means Kylian could not
+# handle the message (401 token, 403 sender not allowed, 400 bad payload,
+# 502 orchestrator error) — surface a brief apology, never a fabricated result.
+response:
+  reply_from: text

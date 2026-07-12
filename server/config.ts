@@ -35,6 +35,7 @@ export interface ServerConfig {
   gradiumVadConsecutiveSteps: number;
   nemoclawIngressToken?: string;
   nemoclawComputerId: string;
+  whatsappAllowedIds: string[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -74,12 +75,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     gradiumVadConsecutiveSteps: integer(env.GRADIUM_VAD_CONSECUTIVE_STEPS, 2, "GRADIUM_VAD_CONSECUTIVE_STEPS", 1, 20),
     nemoclawIngressToken: env.NEMOCLAW_INGRESS_TOKEN,
     nemoclawComputerId: env.NEMOCLAW_COMPUTER_ID ?? env.KYLIAN_VOICE_COMPUTER_ID ?? "demo-computer",
+    whatsappAllowedIds: stringList(env.WHATSAPP_ALLOWED_IDS, []),
   };
-  validateConfig(config);
+  validateConfig(config, env);
   return config;
 }
 
-function validateConfig(config: ServerConfig): void {
+function validateConfig(config: ServerConfig, env: NodeJS.ProcessEnv): void {
+  // In production the NemoClaw/WhatsApp ingress must not be open. (Gated on
+  // NODE_ENV, not executorMode, so h-company/local-companion dev configs and
+  // the mock-mode test suite stay usable without a token.)
+  if (env.NODE_ENV === "production" && !config.nemoclawIngressToken) {
+    throw new Error("NEMOCLAW_INGRESS_TOKEN is required in production (NODE_ENV=production)");
+  }
   if (config.twilioMediaStreamUrl) {
     const url = new URL(config.twilioMediaStreamUrl);
     if (url.protocol !== "wss:" || url.pathname !== "/twilio/media-stream" || url.search) throw new Error("TWILIO_MEDIA_STREAM_URL must be a public wss:// URL ending in /twilio/media-stream with no query string");

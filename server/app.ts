@@ -117,7 +117,7 @@ export function createApp(config: ServerConfig, events: RuntimeEventHub, session
     response.status(202).json({ accepted: true, sessionId });
   });
 
-  app.post("/api/channels/nemoclaw/messages", validateNemoclaw(config), nemoclawIngress(config, sessions));
+  app.post("/api/channels/nemoclaw/messages", validateNemoclaw(config), nemoclawIngress(config, sessions, policies));
 
   app.post("/api/twilio/voice", validateTwilio(config), incomingVoice(config));
   app.post("/api/twilio/calls", async (request, response) => {

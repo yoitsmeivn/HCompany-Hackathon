@@ -163,3 +163,28 @@ npm run test:gradium:manual
 ```
 
 See [docs/gradium-voice.md](docs/gradium-voice.md) for official sources, protocol details, turn-taking, and current limitations.
+
+## NemoClaw / WhatsApp channel
+
+WhatsApp reaches Kylian through NVIDIA **NemoClaw/OpenClaw**. A thin agent inside the NemoClaw sandbox owns a single tool that POSTs each inbound message to the backend, which runs it through the **same** orchestrator as phone and web — there is no second brain and no separate session state.
+
+```text
+WhatsApp → OpenClaw channel (NemoClaw sandbox) → kylian_handle_message tool
+        → POST /api/channels/nemoclaw/messages → SessionOrchestrationService → OpenAI orchestrator
+```
+
+Backend configuration (`.env`):
+
+```dotenv
+# Shared secret the sandbox agent presents (Bearer or x-nemoclaw-token).
+# Optional in dev/mock; REQUIRED when NODE_ENV=production.
+NEMOCLAW_INGRESS_TOKEN=change-me
+# Computer the WhatsApp channel drives; defaults to KYLIAN_VOICE_COMPUTER_ID.
+NEMOCLAW_COMPUTER_ID=demo-computer
+# Comma-separated allowed WhatsApp sender ids; blank = no restriction (dev only).
+WHATSAPP_ALLOWED_IDS=15551230000
+```
+
+The endpoint enforces, in order: ingress token (`401`), sender allowlist (`403`), payload schema (`400`), then the owner's access policy for `NEMOCLAW_COMPUTER_ID` (allowed folders/applications from the same `PolicyStore` the voice path uses). Attachment **metadata** is summarized into the message; file bytes stay in WhatsApp/NemoClaw.
+
+Provisioning the sandbox that calls this endpoint (channel add, QR pairing, network policy, H model) is documented in [nemoclaw/README.md](nemoclaw/README.md). Run `npm run test:nemoclaw` for the channel's in-process and real-server tests.

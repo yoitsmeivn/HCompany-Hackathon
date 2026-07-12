@@ -46,6 +46,14 @@ Current H Company documentation describes:
 
 The production choice should be either a local-companion transport that invokes HoloDesktop, or a verified MCP/ACP/A2A client. That implementation must translate actual HoloDesktop task events into `RuntimeEvent` values.
 
+### Executor status (re-checked 2026-07-12)
+
+The executor is intentionally left **mocked**. `server/index.ts` always constructs `MockComputerTaskAdapter`; `KYLIAN_EXECUTOR_MODE` does not currently select an adapter (it only gates `demo-computer` registry registration for voice and the `simulate-call` route). `HCompanyComputerTaskAdapter` is a deliberate stub and is never instantiated.
+
+H Company has since shipped **HoloDesktop CLI** ([hcompany.ai/holodesktop-cli](https://hcompany.ai/holodesktop-cli), [github.com/hcompai/holo-desktop-cli](https://github.com/hcompai/holo-desktop-cli)): an open-source client that runs H Agent (Holo3) locally and exposes **MCP, ACP, and A2A** surfaces, with model inference via the H Models API or self-hosted. It explicitly lists OpenClaw/NemoClaw and Claude Code as supported harnesses.
+
+This is **not** a drop-in hosted task API the backend can POST to — it is a local desktop agent surface. Adopting it is the documented `local-companion` path: implement `LocalCompanionTaskAdapter` (see `server/companion/contracts.ts`) as an MCP/ACP client that drives a running HoloDesktop instance, with Holo model credentials, and translate its task events into `RuntimeEvent`s. Estimated ~3–5 focused days; it is orthogonal to the NemoClaw/WhatsApp channel, which works end-to-end on the mock today. Left for a follow-up because the current milestone does not require real desktop control.
+
 Official sources:
 
 - [HoloDesktop CLI announcement and interfaces](https://hcompany.ai/holodesktop-cli)
